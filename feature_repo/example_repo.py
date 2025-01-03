@@ -22,23 +22,23 @@ project = Project(name="fraud_detection_e2e_demo", description="A project for dr
 
 # Define an entity for the driver. You can think of an entity as a primary key used to
 # fetch features.
-transaction = Entity(name="transaction", join_keys=["transaction_id"])
+transaction = Entity(name="transaction", join_keys=["user_id"])
 
-df = pd.read_csv("data/synthetic_train.csv")
+df = pd.read_csv("data/final_data.csv")
 
-df["event_timestamp"] = pd.to_datetime(df["event_timestamp"], errors="coerce", utc=True)
-df["created_timestamp"] = pd.to_datetime(df["created_timestamp"], errors="coerce", utc=True)
+df["created"] = pd.to_datetime(df["created"], errors="coerce", utc=True)
+df["updated"] = pd.to_datetime(df["updated"], errors="coerce", utc=True)
 
-df.to_parquet('data/train.parquet')
+df.to_parquet('data/final_data.parquet')
 
 # Read data from parquet files. Parquet is convenient for local development mode. For
 # production, you can use your favorite DWH, such as BigQuery. See Feast documentation
 # for more info.
 transaction_source = FileSource(
     name="transaction_stats_source",
-    path="data/train.parquet",
-    timestamp_field="event_timestamp",
-    created_timestamp_column="created_timestamp",
+    path="data/final_data.parquet",
+    timestamp_field="created",
+    created_timestamp_column="updated",
 )
 
 # Our parquet files contain sample data that includes a driver_id column, timestamps and
