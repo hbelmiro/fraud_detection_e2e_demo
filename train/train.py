@@ -9,39 +9,35 @@ import tensorflow as tf
 from feast import FeatureStore
 from keras.api.layers import Dense, Dropout, BatchNormalization, Activation
 from keras.api.models import Sequential
-from pandas import DataFrame
 from sklearn.preprocessing import StandardScaler
 from sklearn.utils import class_weight
 
 
-def fetch_historical_features_entity_df(store: FeatureStore, for_batch_scoring: bool) -> DataFrame:
+def fetch_historical_features_entity_df(store: FeatureStore, for_batch_scoring: bool):
     # Note: see https://docs.feast.dev/getting-started/concepts/feature-retrieval for more details on how to retrieve
     # for all entities in the offline store instead
     entity_df = pd.DataFrame.from_dict(
         {
             # entity's join key -> entity values
-            "transaction_id": [1, 2, 3],
+            "user_id": ["user_1", "user_2", "user_3"],
             # "event_timestamp" (reserved key) -> timestamps
-            "event_timestamp": [
-                datetime(2024, 12, 1, 4, 17, 47, 688222),
-                datetime(2024, 12, 5, 7, 22, 19, 688222),
-                datetime(2024, 12, 10, 11, 27, 18, 688222),
+            "created": [
+                datetime(2025, 1, 7, 15, 9, 26, 562557),
+                datetime(2025, 1, 7, 15, 9, 26, 562557),
+                datetime(2025, 1, 7, 15, 9, 26, 562557),
             ],
         }
     )
 
     # For batch scoring, we want the latest timestamps
     if for_batch_scoring:
-        entity_df["event_timestamp"] = pd.to_datetime("now", utc=True)
+        entity_df["created"] = pd.to_datetime("now", utc=True)
 
     training_df = store.get_historical_features(
         entity_df=entity_df,
         features=[
+            "transactions:distance_from_home",
             "transactions:distance_from_last_transaction",
-            "transactions:ratio_to_median_purchase_price",
-            "transactions:used_chip",
-            "transactions:used_pin_number",
-            "transactions:online_order",
             "transactions:fraud",
         ],
     ).to_df()
@@ -51,6 +47,8 @@ def fetch_historical_features_entity_df(store: FeatureStore, for_batch_scoring: 
 
 store = FeatureStore(repo_path="../feature_repo")
 df = fetch_historical_features_entity_df(store, for_batch_scoring=False)
+
+print(df.head())
 
 # Set the input (X) and output (Y) data.
 # The only output data is whether it's fraudulent. All other fields are inputs to the model.
