@@ -75,9 +75,9 @@ def generate_random_transactions(
 
 
 print("loading data...")
-train = pd.read_csv(os.path.join("feature_repo/data", "train.csv"))
-test = pd.read_csv(os.path.join("feature_repo/data", "test.csv"))
-valid = pd.read_csv(os.path.join("feature_repo/data", "validate.csv"))
+train = pd.read_csv(os.path.join("feature_repo", "data", "train.csv"))
+test = pd.read_csv(os.path.join("feature_repo", "data", "test.csv"))
+valid = pd.read_csv(os.path.join("feature_repo", "data", "validate.csv"))
 
 train["set"] = "train"
 test["set"] = "test"
