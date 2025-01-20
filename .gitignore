@@ -43,3 +43,8 @@ coverage.xml
 # OS generated files
 .DS_Store
 Thumbs.db
+
+/feature_engineering/feature_repo/data/features.csv
+/feature_engineering/feature_repo/data/raw_transaction_datasource.csv
+/train/models/
+/train/artifact/

@@ -5,7 +5,7 @@ from feast import FeatureStore
 
 
 def run_demo():
-    store = FeatureStore(repo_path=".")
+    store = FeatureStore(repo_path="..")
     print("\n--- Run feast apply ---")
     # subprocess.run(["feast", "apply"])
 
