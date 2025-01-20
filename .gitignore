@@ -43,3 +43,9 @@ coverage.xml
 # OS generated files
 .DS_Store
 Thumbs.db
+/feature_repo/data/final_data.csv
+/feature_repo/data/final_data.parquet
+/feature_repo/data/online_store.db
+/feature_repo/data/raw_transaction_datasource.csv
+/feature_repo/data/raw_transactions.csv
+/feature_repo/data/registry.db
