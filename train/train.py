@@ -3,105 +3,19 @@ import pickle
 from pathlib import Path
 
 import numpy as np
+import onnx
 import pandas as pd
 from keras.api.layers import Dense, Dropout, BatchNormalization, Activation, Input
 from keras.api.models import Sequential
+from keras.src.utils.module_utils import tf2onnx
 from sklearn.preprocessing import StandardScaler
 from sklearn.utils import class_weight
 
 data_dir = "feature_repo/data"
 
 
-def calculate_point_in_time_features(label_dataset, transactions_df) -> pd.DataFrame:
-    label_dataset["created"] = pd.to_datetime(label_dataset["created"])
-    transactions_df["transaction_timestamp"] = pd.to_datetime(
-        transactions_df["date_of_transaction"]
-    )
-
-    # Get all transactions before the created time
-    transactions_before = pd.merge(
-        label_dataset[["user_id", "created"]], transactions_df, on="user_id"
-    )
-    transactions_before = transactions_before[
-        transactions_before["transaction_timestamp"] < transactions_before["created_x"]
-        ]
-    transactions_before["days_between_transactions"] = (
-            transactions_before["transaction_timestamp"] - transactions_before["created_x"]
-    ).dt.days
-
-    # Group by user_id and created to calculate features
-    features = (
-        transactions_before.groupby(["user_id", "created_x"])
-        .agg(
-            num_prev_transactions=("transaction_amount", "count"),
-            avg_prev_transaction_amount=("transaction_amount", "mean"),
-            max_prev_transaction_amount=("transaction_amount", "max"),
-            stdv_prev_transaction_amount=("transaction_amount", "std"),
-            days_since_last_transaction=("days_between_transactions", "min"),
-            days_since_first_transaction=("days_between_transactions", "max"),
-        )
-        .reset_index()
-        .fillna(0)
-    )
-
-    final_df = (
-        pd.merge(
-            label_dataset,
-            features,
-            left_on=["user_id", "created"],
-            right_on=["user_id", "created_x"],
-            how="left",
-        )
-        .reset_index(drop=True)
-        .drop("created_x", axis=1)
-    )
-
-    return final_df
-
-
 def get_features() -> pd.DataFrame:
-    print("loading data...")
-
-    train_set = pd.read_csv(os.path.join(data_dir, "train.csv"))
-    test_set = pd.read_csv(os.path.join(data_dir, "test.csv"))
-    validate_set = pd.read_csv(os.path.join(data_dir, "validate.csv"))
-    train_set["set"] = "train"
-    test_set["set"] = "test"
-    validate_set["set"] = "valid"
-
-    df = pd.concat([train_set, test_set, validate_set], axis=0).reset_index(drop=True)
-
-    df["user_id"] = [f"user_{i}" for i in range(df.shape[0])]
-    df["transaction_id"] = [f"txn_{i}" for i in range(df.shape[0])]
-
-    for date_col in ["created", "updated"]:
-        df[date_col] = pd.Timestamp.now()
-
-    label_dataset = pd.DataFrame(
-        df[
-            [
-                "user_id",
-                "fraud",
-                "created",
-                "updated",
-                "set",
-                "distance_from_home",
-                "distance_from_last_transaction",
-                "ratio_to_median_purchase_price",
-            ]
-        ]
-    )
-
-    user_purchase_history = pd.read_csv(os.path.join(data_dir, "raw_transactions.csv"))
-
-    features = calculate_point_in_time_features(label_dataset, user_purchase_history)
-
-    features = features.merge(
-        df[["user_id", "created", "used_chip", "used_pin_number", "online_order"]],
-        on=["user_id", "created"],
-    )
-
-    return features
+    return pd.read_csv("../feature_engineering/feature_repo/data/features.csv")
 
 
 def build_model(feature_indexes: list[int]) -> Sequential:
@@ -142,20 +56,39 @@ def train_model(X_train, X_val, y_train, y_val, class_weights, model):
     print(f"Training of model is complete. Took {end - start} seconds")
 
 
+def save_model(X_train, model):
+    import tensorflow as tf
+    # Normally we use tf2.onnx.convert.from_keras.
+    # workaround for tf2onnx bug https://github.com/onnx/tensorflow-onnx/issues/2348
+    # Wrap the model in a `tf.function`
+    @tf.function(input_signature=[tf.TensorSpec([None, X_train.shape[1]], tf.float32, name='dense_input')])
+    def model_fn(x):
+        return model(x)
+
+    # Convert the Keras model to ONNX
+    model_proto, _ = tf2onnx.convert.from_function(
+        model_fn,
+        input_signature=[tf.TensorSpec([None, X_train.shape[1]], tf.float32, name='dense_input')]
+    )
+    # Save the model as ONNX for easy use of ModelMesh
+    os.makedirs("models/fraud/1", exist_ok=True)
+    onnx.save(model_proto, "models/fraud/1/model.onnx")
+
+
 def main():
     features = get_features()
     # features.to_csv(os.path.join(data_dir, "final_data.csv"))
     # Set the input (X) and output (Y) data.
     # The only output data is whether it's fraudulent. All other fields are inputs to the model.
     feature_indexes: list[int] = [
-        6,  # distance_from_last_transaction
-        7,  # ratio_to_median_purchase_price
-        14,  # used_chip
-        15,  # used_pin_number
-        16,  # online_order
+        7,  # distance_from_last_transaction
+        8,  # ratio_to_median_purchase_price
+        15,  # used_chip
+        16,  # used_pin_number
+        17,  # online_order
     ]
     label_indexes = [
-        1  # fraud
+        2  # fraud
     ]
     train_features = features[features["set"] == "train"]
     test_features = features[features["set"] == "test"]
@@ -180,8 +113,12 @@ def main():
     # Since the dataset is unbalanced (it has many more non-fraud transactions than fraudulent ones), set a class weight to weight the few fraudulent transactions higher than the many non-fraud transactions.
     class_weights = class_weight.compute_class_weight('balanced', classes=np.unique(y_train), y=y_train.ravel())
     class_weights = {i: class_weights[i] for i in range(len(class_weights))}
-    model = build_model(feature_indexes)
+
+    model: Sequential = build_model(feature_indexes)
+
     train_model(X_train, X_val, y_train, y_val, class_weights, model)
+
+    save_model(X_train, model)
 
 
 main()
