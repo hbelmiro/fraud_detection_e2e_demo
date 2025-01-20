@@ -4,7 +4,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from keras.api.layers import Dense, Dropout, BatchNormalization, Activation
+from keras.api.layers import Dense, Dropout, BatchNormalization, Activation, Input
 from keras.api.models import Sequential
 from sklearn.preprocessing import StandardScaler
 from sklearn.utils import class_weight
@@ -106,7 +106,8 @@ def get_features() -> pd.DataFrame:
 
 def build_model(feature_indexes: list[int]) -> Sequential:
     model = Sequential()
-    model.add(Dense(32, activation='relu', input_dim=len(feature_indexes)))
+    model.add(Input(shape=(len(feature_indexes),)))
+    model.add(Dense(32, activation='relu'))
     model.add(Dropout(0.2))
     model.add(Dense(32))
     model.add(BatchNormalization())
@@ -123,6 +124,22 @@ def build_model(feature_indexes: list[int]) -> Sequential:
         metrics=['accuracy']
     )
     return model
+
+
+def train_model(X_train, X_val, y_train, y_val, class_weights, model):
+    import time
+    start = time.time()
+    epochs = 2
+    history = model.fit(
+        X_train,
+        y_train,
+        epochs=epochs,
+        validation_data=(X_val, y_val),
+        verbose=True,
+        class_weight=class_weights
+    )
+    end = time.time()
+    print(f"Training of model is complete. Took {end - start} seconds")
 
 
 def main():
@@ -164,19 +181,7 @@ def main():
     class_weights = class_weight.compute_class_weight('balanced', classes=np.unique(y_train), y=y_train.ravel())
     class_weights = {i: class_weights[i] for i in range(len(class_weights))}
     model = build_model(feature_indexes)
-    import time
-    start = time.time()
-    epochs = 2
-    history = model.fit(
-        X_train,
-        y_train,
-        epochs=epochs,
-        validation_data=(X_val, y_val),
-        verbose=True,
-        class_weight=class_weights
-    )
-    end = time.time()
-    print(f"Training of model is complete. Took {end - start} seconds")
+    train_model(X_train, X_val, y_train, y_val, class_weights, model)
 
 
 main()
