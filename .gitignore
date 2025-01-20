@@ -49,3 +49,5 @@ Thumbs.db
 /feature_repo/data/raw_transaction_datasource.csv
 /feature_repo/data/raw_transactions.csv
 /feature_repo/data/registry.db
+/artifact/scaler.pkl
+/artifact/test_data.pkl
