@@ -5,8 +5,8 @@ from feast import FeatureStore
 
 
 def run_demo():
-    store = FeatureStore(repo_path="..")
-    print("\n--- Run feast apply ---")
+    store = FeatureStore(repo_path="feature_repo/")
+    # print("\n--- Run feast apply ---")
     # subprocess.run(["feast", "apply"])
 
     print("\n--- Historical features for training ---")
@@ -63,9 +63,9 @@ def fetch_historical_features_entity_df(store: FeatureStore, for_batch_scoring: 
             "user_id": ["user_1", "user_2", "user_3"],
             # "event_timestamp" (reserved key) -> timestamps
             "created": [
-                datetime(2025, 1, 7, 15, 9, 26, 562557),
-                datetime(2025, 1, 7, 15, 9, 26, 562557),
-                datetime(2025, 1, 7, 15, 9, 26, 562557),
+                datetime(2025, 1, 21, 10, 29, 46, 836209),
+                datetime(2025, 1, 21, 10, 29, 46, 836209),
+                datetime(2025, 1, 21, 10, 29, 46, 836209),
             ],
         }
     )
