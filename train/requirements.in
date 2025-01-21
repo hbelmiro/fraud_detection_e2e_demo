@@ -1,6 +1,7 @@
-pandas==2.2.3
-onnx==1.17.0
-onnxruntime==1.20.1
-tensorflow==2.18.0
-tf2onnx==1.16.1
-scikit-learn==1.6.0
+pandas
+onnx
+onnxruntime
+tensorflow
+tf2onnx
+scikit-learn
+matplotlib

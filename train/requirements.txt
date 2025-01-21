@@ -13,11 +13,17 @@ charset-normalizer==3.4.1
     # via requests
 coloredlogs==15.0.1
     # via onnxruntime
+contourpy==1.3.1
+    # via matplotlib
+cycler==0.12.1
+    # via matplotlib
 flatbuffers==24.12.23
     # via
     #   onnxruntime
     #   tensorflow
     #   tf2onnx
+fonttools==4.55.3
+    # via matplotlib
 gast==0.6.0
     # via tensorflow
 google-pasta==0.2.0
@@ -38,6 +44,8 @@ joblib==1.4.2
     # via scikit-learn
 keras==3.8.0
     # via tensorflow
+kiwisolver==1.4.8
+    # via matplotlib
 libclang==18.1.1
     # via tensorflow
 markdown==3.7
@@ -46,6 +54,8 @@ markdown-it-py==3.0.0
     # via rich
 markupsafe==3.0.2
     # via werkzeug
+matplotlib==3.10.0
+    # via -r requirements.in
 mdurl==0.1.2
     # via markdown-it-py
 ml-dtypes==0.4.1
@@ -58,8 +68,10 @@ namex==0.0.8
     # via keras
 numpy==2.0.2
     # via
+    #   contourpy
     #   h5py
     #   keras
+    #   matplotlib
     #   ml-dtypes
     #   onnx
     #   onnxruntime
@@ -82,11 +94,14 @@ optree==0.14.0
 packaging==24.2
     # via
     #   keras
+    #   matplotlib
     #   onnxruntime
     #   tensorboard
     #   tensorflow
 pandas==2.2.3
     # via -r requirements.in
+pillow==11.1.0
+    # via matplotlib
 protobuf==3.20.3
     # via
     #   onnx
@@ -96,8 +111,12 @@ protobuf==3.20.3
     #   tf2onnx
 pygments==2.19.1
     # via rich
+pyparsing==3.2.1
+    # via matplotlib
 python-dateutil==2.9.0
-    # via pandas
+    # via
+    #   matplotlib
+    #   pandas
 pytz==2024.2
     # via pandas
 requests==2.32.3
