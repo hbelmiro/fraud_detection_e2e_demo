@@ -2,7 +2,7 @@ import os
 
 import pandas as pd
 
-data_dir = "feature_repo/data"
+data_dir = "data"
 
 
 def calculate_point_in_time_features(label_dataset, transactions_df) -> pd.DataFrame:
@@ -102,4 +102,5 @@ def main():
     features.to_csv(os.path.join(data_dir, "features.csv"))
 
 
-main()
+# if __name__ == "__main__":
+#     main()
