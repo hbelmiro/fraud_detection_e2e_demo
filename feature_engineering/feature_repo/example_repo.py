@@ -17,12 +17,110 @@ from feast import (
 from feast.feature_logging import LoggingConfig
 from feast.infra.offline_stores.file_source import FileLoggingDestination
 
-from feature_engineering import get_features, data_dir
+DATA_DIR = "data"
 
+
+def calculate_point_in_time_features(label_dataset, transactions_df) -> pd.DataFrame:
+    label_dataset["created"] = pd.to_datetime(label_dataset["created"])
+    transactions_df["transaction_timestamp"] = pd.to_datetime(
+        transactions_df["date_of_transaction"]
+    )
+
+    # Get all transactions before the created time
+    transactions_before = pd.merge(
+        label_dataset[["user_id", "created"]], transactions_df, on="user_id"
+    )
+    transactions_before = transactions_before[
+        transactions_before["transaction_timestamp"] < transactions_before["created_x"]
+        ]
+    transactions_before["days_between_transactions"] = (
+            transactions_before["transaction_timestamp"] - transactions_before["created_x"]
+    ).dt.days
+
+    # Group by user_id and created to calculate features
+    features = (
+        transactions_before.groupby(["user_id", "created_x"])
+        .agg(
+            num_prev_transactions=("transaction_amount", "count"),
+            avg_prev_transaction_amount=("transaction_amount", "mean"),
+            max_prev_transaction_amount=("transaction_amount", "max"),
+            stdv_prev_transaction_amount=("transaction_amount", "std"),
+            days_since_last_transaction=("days_between_transactions", "min"),
+            days_since_first_transaction=("days_between_transactions", "max"),
+        )
+        .reset_index()
+        .fillna(0)
+    )
+
+    final_df = (
+        pd.merge(
+            label_dataset,
+            features,
+            left_on=["user_id", "created"],
+            right_on=["user_id", "created_x"],
+            how="left",
+        )
+        .reset_index(drop=True)
+        .drop("created_x", axis=1)
+    )
+
+    return final_df
+
+
+def get_features() -> pd.DataFrame:
+    print("loading data...")
+
+    train_set = pd.read_csv(os.path.join(DATA_DIR, "train.csv"))
+    test_set = pd.read_csv(os.path.join(DATA_DIR, "test.csv"))
+    validate_set = pd.read_csv(os.path.join(DATA_DIR, "validate.csv"))
+    train_set["set"] = "train"
+    test_set["set"] = "test"
+    validate_set["set"] = "valid"
+
+    df = pd.concat([train_set, test_set, validate_set], axis=0).reset_index(drop=True)
+
+    df["user_id"] = [f"user_{i}" for i in range(df.shape[0])]
+    df["transaction_id"] = [f"txn_{i}" for i in range(df.shape[0])]
+
+    for date_col in ["created", "updated"]:
+        df[date_col] = pd.Timestamp.now()
+
+    label_dataset = pd.DataFrame(
+        df[
+            [
+                "user_id",
+                "fraud",
+                "created",
+                "updated",
+                "set",
+                "distance_from_home",
+                "distance_from_last_transaction",
+                "ratio_to_median_purchase_price",
+            ]
+        ]
+    )
+
+    user_purchase_history = pd.read_csv(os.path.join(DATA_DIR, "raw_transaction_datasource.csv"))
+
+    features = calculate_point_in_time_features(label_dataset, user_purchase_history)
+
+    features = features.merge(
+        df[["user_id", "created", "used_chip", "used_pin_number", "online_order"]],
+        on=["user_id", "created"],
+    )
+
+    return features
+
+
+features_file_name = os.path.join(DATA_DIR, "features.csv")
+entity_file_name = os.path.join(DATA_DIR, "entity.csv")
 
 features = get_features()
-features_file_name = os.path.join(data_dir, "features.csv")
 features.to_csv(features_file_name)
+
+entity_df = features[["created", "updated", "user_id"]]
+entity_df.rename(columns={'created': 'created_timestamp', 'updated': 'event_timestamp'}, inplace=True)
+entity_df.to_csv(entity_file_name)
 
 # Define a project for the feature repo
 project = Project(name="fraud_detection_e2e_demo", description="A project for driver statistics")
@@ -42,8 +140,8 @@ df.to_parquet(parquet_file_name)
 transaction_source = FileSource(
     name="transaction_stats_source",
     path=parquet_file_name,
-    timestamp_field="created",
-    created_timestamp_column="updated",
+    timestamp_field="updated",
+    created_timestamp_column="created",
 )
 # Our parquet files contain sample data that includes a driver_id column, timestamps and
 # three feature column. Here we define a Feature View that will allow us to serve this
@@ -117,4 +215,3 @@ transactions_fresh_fv = FeatureView(
     source=transactions_push_source,  # Changed from above
     tags={"team": "driver_performance"},
 )
-

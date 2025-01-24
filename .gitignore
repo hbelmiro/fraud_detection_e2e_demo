@@ -48,3 +48,7 @@ Thumbs.db
 /feature_engineering/feature_repo/data/raw_transaction_datasource.csv
 /train/models/
 /train/artifact/
+/feature_engineering/feature_repo/data/entity.csv
+/feature_engineering/feature_repo/data/features.parquet
+/feature_engineering/feature_repo/data/online_store.db
+/feature_engineering/feature_repo/data/registry.db

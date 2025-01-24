@@ -1,3 +1,4 @@
+import os
 from datetime import datetime
 
 import pandas as pd
@@ -57,22 +58,20 @@ def run_demo():
 def fetch_historical_features_entity_df(store: FeatureStore, for_batch_scoring: bool):
     # Note: see https://docs.feast.dev/getting-started/concepts/feature-retrieval for more details on how to retrieve
     # for all entities in the offline store instead
-    entity_df = pd.DataFrame.from_dict(
-        {
-            # entity's join key -> entity values
-            "user_id": ["user_1", "user_2", "user_3"],
-            # "event_timestamp" (reserved key) -> timestamps
-            "created": [
-                datetime(2025, 1, 21, 10, 29, 46, 836209),
-                datetime(2025, 1, 21, 10, 29, 46, 836209),
-                datetime(2025, 1, 21, 10, 29, 46, 836209),
-            ],
-        }
-    )
+    # entity_df = pd.DataFrame.from_dict(
+    #     {
+    #         "user_id": ["user_1", "user_2", "user_3"],
+    #         "created": [
+    #             datetime(2025, 1, 21, 10, 29, 46, 836209),
+    #             datetime(2025, 1, 21, 10, 29, 46, 836209),
+    #             datetime(2025, 1, 21, 10, 29, 46, 836209),
+    #         ],
+    #     }
+    # )
 
-    # For batch scoring, we want the latest timestamps
-    if for_batch_scoring:
-        entity_df["created"] = pd.to_datetime("now", utc=True)
+    entity_df = pd.read_csv(os.path.join("feature_repo/data/entity.csv"))
+    entity_df["created_timestamp"] = pd.to_datetime("now", utc=True)
+    entity_df["event_timestamp"] = pd.to_datetime("now", utc=True)
 
     training_df = store.get_historical_features(
         entity_df=entity_df,
