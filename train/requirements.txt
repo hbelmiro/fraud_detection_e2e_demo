@@ -208,6 +208,8 @@ protobuf==3.20.3
     #   tensorboard
     #   tensorflow-macos
     #   tf2onnx
+py4j==0.10.9.7
+    # via pyspark
 pyarrow==11.0.0
     # via feast
 pyasn1==0.6.1
@@ -224,6 +226,8 @@ pygments==2.19.1
     # via feast
 pyparsing==3.2.1
     # via matplotlib
+pyspark==3.5.4
+    # via -r requirements.in
 python-dateutil==2.9.0.post0
     # via
     #   matplotlib
