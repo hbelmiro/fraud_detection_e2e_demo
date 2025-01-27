@@ -6,16 +6,20 @@ import numpy as np
 import onnx
 import pandas as pd
 import tf2onnx
-from keras.api._v2.keras.layers import Dense, Dropout, BatchNormalization, Activation, Input
-from keras.api._v2.keras.models import Sequential
-from sklearn.preprocessing import StandardScaler
+from keras.layers import Dense, Dropout, BatchNormalization, Activation, Input
+from keras.models import Sequential
+from pyspark import Row
+from pyspark.sql import SparkSession
+from pyspark.ml.feature import StandardScaler
+from pyspark.ml.linalg import Vectors
+from pyspark.sql.functions import col
 from sklearn.utils import class_weight
 
-data_dir = "feature_repo/data"
+spark = SparkSession.builder.appName("FraudDetection").getOrCreate()
 
 
 def get_features() -> pd.DataFrame:
-    return pd.read_csv("../feature_engineering/feature_repo/data/features.csv")
+    return spark.read.csv("../feature_engineering/feature_repo/data/features.csv", header=True, inferSchema=True)
 
 
 def build_model(feature_indexes: list[int]) -> Sequential:
@@ -90,26 +94,54 @@ def main():
     label_indexes = [
         2  # fraud
     ]
-    train_features = features[features["set"] == "train"]
-    test_features = features[features["set"] == "test"]
-    validate_features = features[features["set"] == "valid"]
-    X_train = train_features.iloc[:, feature_indexes].values
-    y_train = train_features.iloc[:, label_indexes].values
-    X_val = validate_features.iloc[:, feature_indexes].values
-    y_val = validate_features.iloc[:, label_indexes].values
-    X_test = test_features.iloc[:, feature_indexes].values
-    y_test = test_features.iloc[:, label_indexes].values
+    # Split the data into train, validation, and test datasets
+    train_features = features.filter(features["set"] == "train")
+    test_features = features.filter(features["set"] == "test")
+    validate_features = features.filter(features["set"] == "valid")
+
+    # Select features
+    X_train = train_features.select([col(features.columns[i]) for i in feature_indexes]).rdd.map(
+        lambda x: Vectors.dense(x)).collect()
+    y_train = train_features.select(col(features.columns[label_indexes[0]])).rdd.map(lambda x: x[0]).collect()
+    X_val = validate_features.select([col(features.columns[i]) for i in feature_indexes]).rdd.map(
+        lambda x: Vectors.dense(x)).collect()
+    y_val = validate_features.select(col(features.columns[label_indexes[0]])).rdd.map(lambda x: x[0]).collect()
+    X_test = test_features.select([col(features.columns[i]) for i in feature_indexes]).rdd.map(
+        lambda x: Vectors.dense(x)).collect()
+    y_test = test_features.select(col(features.columns[label_indexes[0]])).rdd.map(lambda x: x[0]).collect()
+
+    # Convert to numpy arrays for use with Keras
+    X_train = np.array(X_train)
+    X_val = np.array(X_val)
+    X_test = np.array(X_test)
+    y_train = np.array(y_train)
+    y_val = np.array(y_val)
+    y_test = np.array(y_test)
+
     # Scale the data to remove mean and have unit variance. The data will be between -1 and 1, which makes it a lot easier for the model to learn than random (and potentially large) values.
     # It is important to only fit the scaler to the training data, otherwise you are leaking information about the global distribution of variables (which is influenced by the test set) into the training set.
-    scaler = StandardScaler()
-    X_train = scaler.fit_transform(X_train)
-    X_val = scaler.transform(X_val)
-    X_test = scaler.transform(X_test)
+    scaler = StandardScaler(inputCol="features", outputCol="scaled_features")
+    train_df = spark.createDataFrame([(Vectors.dense(X_train[i]),) for i in range(len(X_train))], ["features"])
+    test_df = spark.createDataFrame([(Vectors.dense(X_test[i]),) for i in range(len(X_test))], ["features"])
+    val_df = spark.createDataFrame([(Vectors.dense(X_val[i]),) for i in range(len(X_val))], ["features"])
+
+    scaler_model = scaler.fit(train_df)
+    train_df = scaler_model.transform(train_df)
+    test_df = scaler_model.transform(test_df)
+    val_df = scaler_model.transform(val_df)
+
+    # Extract scaled data
+    X_train = np.array([row.scaled_features.toArray() for row in train_df.collect()])
+    X_val = np.array([row.scaled_features.toArray() for row in val_df.collect()])
+    X_test = np.array([row.scaled_features.toArray() for row in test_df.collect()])
+
+    test_data = [Row(features=Vectors.dense(X_test[i]), label=float(y_test[i])) for i in range(len(X_test))]
+    test_df = spark.createDataFrame(test_data)
+
     Path("artifact").mkdir(parents=True, exist_ok=True)
-    with open("artifact/test_data.pkl", "wb") as handle:
-        pickle.dump((X_test, y_test), handle)
-    with open("artifact/scaler.pkl", "wb") as handle:
-        pickle.dump(scaler, handle)
+    test_df.write.parquet("artifact/test_data.parquet")
+    scaler_model.save("artifact/scaler_model")
+
     # Since the dataset is unbalanced (it has many more non-fraud transactions than fraudulent ones), set a class weight to weight the few fraudulent transactions higher than the many non-fraud transactions.
     class_weights = class_weight.compute_class_weight('balanced', classes=np.unique(y_train), y=y_train.ravel())
     class_weights = {i: class_weights[i] for i in range(len(class_weights))}
@@ -121,4 +153,5 @@ def main():
     save_model(X_train, model)
 
 
-main()
+if __name__ == "__main__":
+    main()

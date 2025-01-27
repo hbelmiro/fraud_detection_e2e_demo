@@ -1,4 +1,5 @@
 feast
+pyspark
 keras>=2.14.0,<2.15 # due to tensorflow
 numpy<2 # due to keras
 pandas
