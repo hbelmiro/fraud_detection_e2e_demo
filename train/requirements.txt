@@ -2,85 +2,174 @@
 #    uv pip compile requirements.in -o requirements.txt
 absl-py==2.1.0
     # via
-    #   keras
     #   tensorboard
-    #   tensorflow
+    #   tensorflow-macos
+anyio==4.8.0
+    # via
+    #   httpx
+    #   starlette
+    #   watchfiles
+appdirs==1.4.4
+    # via fissix
 astunparse==1.6.3
-    # via tensorflow
+    # via tensorflow-macos
+attrs==25.1.0
+    # via
+    #   bowler
+    #   jsonschema
+    #   referencing
+bowler==0.9.0
+    # via feast
+cachetools==5.5.1
+    # via google-auth
 certifi==2024.12.14
-    # via requests
+    # via
+    #   httpcore
+    #   httpx
+    #   requests
 charset-normalizer==3.4.1
     # via requests
+click==8.1.8
+    # via
+    #   bowler
+    #   dask
+    #   feast
+    #   moreorless
+    #   uvicorn
+cloudpickle==3.1.1
+    # via dask
+colorama==0.4.6
+    # via feast
 coloredlogs==15.0.1
     # via onnxruntime
 contourpy==1.3.1
     # via matplotlib
 cycler==0.12.1
     # via matplotlib
-flatbuffers==24.12.23
+dask==2025.1.0
+    # via feast
+dill==0.3.9
+    # via feast
+exceptiongroup==1.2.2
+    # via anyio
+fastapi==0.115.7
+    # via feast
+fastavro==1.10.0
+    # via
+    #   feast
+    #   pandavro
+feast==0.33.1
+    # via -r requirements.in
+fissix==24.4.24
+    # via bowler
+flatbuffers==25.1.24
     # via
     #   onnxruntime
-    #   tensorflow
+    #   tensorflow-macos
     #   tf2onnx
-fonttools==4.55.3
+fonttools==4.55.6
     # via matplotlib
+fsspec==2024.12.0
+    # via dask
 gast==0.6.0
-    # via tensorflow
-google-pasta==0.2.0
-    # via tensorflow
-grpcio==1.69.0
+    # via tensorflow-macos
+google-auth==2.38.0
     # via
+    #   google-auth-oauthlib
     #   tensorboard
-    #   tensorflow
-h5py==3.12.1
+google-auth-oauthlib==1.0.0
+    # via tensorboard
+google-pasta==0.2.0
+    # via tensorflow-macos
+grpcio==1.70.0
     # via
-    #   keras
-    #   tensorflow
+    #   feast
+    #   grpcio-reflection
+    #   tensorboard
+    #   tensorflow-macos
+grpcio-reflection==1.48.2
+    # via feast
+gunicorn==23.0.0
+    # via feast
+h11==0.14.0
+    # via
+    #   httpcore
+    #   uvicorn
+h5py==3.12.1
+    # via tensorflow-macos
+httpcore==1.0.7
+    # via httpx
+httptools==0.6.4
+    # via uvicorn
+httpx==0.28.1
+    # via feast
 humanfriendly==10.0
     # via coloredlogs
 idna==3.10
-    # via requests
+    # via
+    #   anyio
+    #   httpx
+    #   requests
+importlib-metadata==8.6.1
+    # via dask
+jinja2==3.1.5
+    # via feast
 joblib==1.4.2
     # via scikit-learn
-keras==3.8.0
-    # via tensorflow
+jsonschema==4.23.0
+    # via feast
+jsonschema-specifications==2024.10.1
+    # via jsonschema
+keras==2.14.0
+    # via
+    #   -r requirements.in
+    #   tensorflow-macos
 kiwisolver==1.4.8
     # via matplotlib
 libclang==18.1.1
-    # via tensorflow
+    # via tensorflow-macos
+locket==1.0.0
+    # via partd
 markdown==3.7
     # via tensorboard
-markdown-it-py==3.0.0
-    # via rich
 markupsafe==3.0.2
-    # via werkzeug
+    # via
+    #   jinja2
+    #   werkzeug
 matplotlib==3.10.0
     # via -r requirements.in
-mdurl==0.1.2
-    # via markdown-it-py
-ml-dtypes==0.4.1
-    # via
-    #   keras
-    #   tensorflow
+ml-dtypes==0.2.0
+    # via tensorflow-macos
+mmh3==5.1.0
+    # via feast
+moreorless==0.4.0
+    # via bowler
 mpmath==1.3.0
     # via sympy
-namex==0.0.8
-    # via keras
-numpy==2.0.2
+mypy==1.14.1
+    # via sqlalchemy
+mypy-extensions==1.0.0
+    # via mypy
+numpy==1.26.4
     # via
+    #   -r requirements.in
     #   contourpy
+    #   feast
     #   h5py
-    #   keras
     #   matplotlib
     #   ml-dtypes
     #   onnx
     #   onnxruntime
     #   pandas
+    #   pandavro
+    #   pyarrow
     #   scikit-learn
     #   scipy
     #   tensorboard
-    #   tensorflow
+    #   tensorflow-macos
     #   tf2onnx
+oauthlib==3.2.2
+    # via requests-oauthlib
 onnx==1.17.0
     # via
     #   -r requirements.in
@@ -88,86 +177,172 @@ onnx==1.17.0
 onnxruntime==1.20.1
     # via -r requirements.in
 opt-einsum==3.4.0
-    # via tensorflow
-optree==0.14.0
-    # via keras
+    # via tensorflow-macos
 packaging==24.2
     # via
-    #   keras
+    #   dask
+    #   gunicorn
     #   matplotlib
     #   onnxruntime
-    #   tensorboard
-    #   tensorflow
-pandas==2.2.3
-    # via -r requirements.in
+    #   tensorflow-macos
+pandas==1.5.3
+    # via
+    #   -r requirements.in
+    #   feast
+    #   pandavro
+pandavro==1.5.2
+    # via feast
+partd==1.4.2
+    # via dask
 pillow==11.1.0
     # via matplotlib
+proto-plus==1.25.0
+    # via feast
 protobuf==3.20.3
     # via
+    #   feast
+    #   grpcio-reflection
     #   onnx
     #   onnxruntime
+    #   proto-plus
     #   tensorboard
-    #   tensorflow
+    #   tensorflow-macos
     #   tf2onnx
+pyarrow==11.0.0
+    # via feast
+pyasn1==0.6.1
+    # via
+    #   pyasn1-modules
+    #   rsa
+pyasn1-modules==0.4.1
+    # via google-auth
+pydantic==1.10.21
+    # via
+    #   fastapi
+    #   feast
 pygments==2.19.1
-    # via rich
+    # via feast
 pyparsing==3.2.1
     # via matplotlib
-python-dateutil==2.9.0
+python-dateutil==2.9.0.post0
     # via
     #   matplotlib
     #   pandas
+python-dotenv==1.0.1
+    # via uvicorn
 pytz==2024.2
     # via pandas
+pyyaml==6.0.2
+    # via
+    #   dask
+    #   feast
+    #   uvicorn
+referencing==0.36.2
+    # via
+    #   jsonschema
+    #   jsonschema-specifications
 requests==2.32.3
     # via
-    #   tensorflow
+    #   feast
+    #   requests-oauthlib
+    #   tensorboard
     #   tf2onnx
-rich==13.9.4
-    # via keras
-scikit-learn==1.6.0
+requests-oauthlib==2.0.0
+    # via google-auth-oauthlib
+rpds-py==0.22.3
+    # via
+    #   jsonschema
+    #   referencing
+rsa==4.9
+    # via google-auth
+scikit-learn==1.6.1
     # via -r requirements.in
 scipy==1.15.1
     # via scikit-learn
 setuptools==75.8.0
     # via
     #   tensorboard
-    #   tensorflow
+    #   tensorflow-macos
 six==1.17.0
     # via
     #   astunparse
     #   google-pasta
+    #   pandavro
     #   python-dateutil
     #   tensorboard
-    #   tensorflow
+    #   tensorflow-macos
     #   tf2onnx
+sniffio==1.3.1
+    # via anyio
+sqlalchemy==1.4.54
+    # via feast
+sqlalchemy2-stubs==0.0.2a38
+    # via sqlalchemy
+starlette==0.45.3
+    # via fastapi
 sympy==1.13.3
     # via onnxruntime
-tensorboard==2.18.0
-    # via tensorflow
+tabulate==0.9.0
+    # via feast
+tenacity==8.5.0
+    # via feast
+tensorboard==2.14.1
+    # via tensorflow-macos
 tensorboard-data-server==0.7.2
     # via tensorboard
-tensorflow==2.18.0
+tensorflow==2.14.1
     # via -r requirements.in
+tensorflow-estimator==2.14.0
+    # via tensorflow-macos
 tensorflow-io-gcs-filesystem==0.37.1
+    # via tensorflow-macos
+tensorflow-macos==2.14.1
     # via tensorflow
 termcolor==2.5.0
-    # via tensorflow
+    # via tensorflow-macos
 tf2onnx==1.16.1
     # via -r requirements.in
 threadpoolctl==3.5.0
     # via scikit-learn
+toml==0.10.2
+    # via feast
+tomli==2.2.1
+    # via mypy
+toolz==1.0.0
+    # via
+    #   dask
+    #   partd
+tqdm==4.67.1
+    # via feast
+typeguard==2.13.3
+    # via feast
 typing-extensions==4.12.2
     # via
-    #   optree
-    #   tensorflow
-tzdata==2024.2
-    # via pandas
+    #   anyio
+    #   fastapi
+    #   mypy
+    #   pydantic
+    #   referencing
+    #   sqlalchemy2-stubs
+    #   tensorflow-macos
+    #   uvicorn
 urllib3==2.3.0
     # via requests
+uvicorn==0.34.0
+    # via feast
+uvloop==0.21.0
+    # via uvicorn
+volatile==2.1.0
+    # via bowler
+watchfiles==1.0.4
+    # via uvicorn
+websockets==14.2
+    # via uvicorn
 werkzeug==3.1.3
     # via tensorboard
 wheel==0.45.1
     # via astunparse
-wrapt==1.17.2
-    # via tensorflow
+wrapt==1.14.1
+    # via tensorflow-macos
+zipp==3.21.0
+    # via importlib-metadata

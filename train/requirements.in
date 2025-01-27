@@ -1,7 +1,10 @@
+feast
+keras>=2.14.0,<2.15 # due to tensorflow
+numpy<2 # due to keras
 pandas
 onnx
 onnxruntime
-tensorflow
-tf2onnx
+tensorflow>=2.9,<=2.15 # due to tf2onnx
+tf2onnx>=1.16.0 # due to numpy
 scikit-learn
 matplotlib

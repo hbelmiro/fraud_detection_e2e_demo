@@ -5,9 +5,9 @@ from pathlib import Path
 import numpy as np
 import onnx
 import pandas as pd
-from keras.api.layers import Dense, Dropout, BatchNormalization, Activation, Input
-from keras.api.models import Sequential
-from keras.src.utils.module_utils import tf2onnx
+import tf2onnx
+from keras.api._v2.keras.layers import Dense, Dropout, BatchNormalization, Activation, Input
+from keras.api._v2.keras.models import Sequential
 from sklearn.preprocessing import StandardScaler
 from sklearn.utils import class_weight
 
