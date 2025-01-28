@@ -1,0 +1,174 @@
+# PIPELINE DEFINITION
+# Name: fraud-detection-e2e-pipeline
+components:
+  comp-create-features:
+    executorLabel: exec-create-features
+    outputDefinitions:
+      parameters:
+        features_ok:
+          parameterType: STRING
+  comp-read-dataset:
+    executorLabel: exec-read-dataset
+    inputDefinitions:
+      artifacts:
+        dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+  comp-retrieve-features:
+    executorLabel: exec-retrieve-features
+    inputDefinitions:
+      parameters:
+        features_ok:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        output_df:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+deploymentSpec:
+  executors:
+    exec-create-features:
+      container:
+        args:
+        - '{{$.outputs.parameters[''features_ok''].output_file}}'
+        command:
+        - sh
+        - -c
+        - python /app/feast_apply.py --feature-repo-path=/app/feature_repo
+        image: quay.io/hbelmiro/fraud-detection-e2e-demo-feast:dev-17404879823N
+    exec-read-dataset:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - read_dataset
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.11.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef read_dataset(dataset: Input[Dataset]):\n    with open(dataset.path,\
+          \ \"r\") as f:\n        data = f.read()\n    print(\"Dataset content:\"\
+          , data)\n\n"
+        image: python:3.11
+    exec-retrieve-features:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - retrieve_features
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.11.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef retrieve_features(features_ok: str, output_df: Output[Dataset]):\n\
+          \    if features_ok != \"true\":\n        raise ValueError(\"features not\
+          \ ok\")\n\n    import os\n\n    def fetch_historical_features_entity_df(features_repo:\
+          \ str):\n        from feast import FeatureStore\n        import pandas as\
+          \ pd\n        import os\n\n        store = FeatureStore(repo_path=features_repo)\n\
+          \        entity_df = pd.read_csv(os.path.join(features_repo, \"data\", \"\
+          output\", \"entity.csv\"))\n        entity_df[\"created_timestamp\"] = pd.to_datetime(\"\
+          now\", utc=True)\n        entity_df[\"event_timestamp\"] = pd.to_datetime(\"\
+          now\", utc=True)\n\n        features = store.get_historical_features(\n\
+          \            entity_df=entity_df,\n            features=[\n            \
+          \    \"transactions:distance_from_home\",\n                \"transactions:distance_from_last_transaction\"\
+          ,\n                \"transactions:ratio_to_median_purchase_price\",\n  \
+          \              \"transactions:fraud\",\n                \"transactions:used_chip\"\
+          ,\n                \"transactions:used_pin_number\",\n                \"\
+          transactions:online_order\",\n                \"transactions:set\"\n   \
+          \         ],\n        ).to_df()\n\n        return features\n\n    def download_artifacts(directory_path,\
+          \ dest):\n        import os\n        from minio import Minio\n\n       \
+          \ minio_endpoint = os.getenv(\"MINIO_ENDPOINT\")\n        minio_access_key\
+          \ = os.getenv(\"MINIO_ACCESS_KEY\")\n        minio_secret_key = os.getenv(\"\
+          MINIO_SECRET_KEY\")\n        minio_bucket = os.getenv(\"MINIO_BUCKET\")\n\
+          \n        client = Minio(\n            minio_endpoint.replace(\"http://\"\
+          , \"\").replace(\"https://\", \"\"),\n            access_key=minio_access_key,\n\
+          \            secret_key=minio_secret_key,\n            secure=minio_endpoint.startswith(\"\
+          https://\")\n        )\n\n        os.makedirs(dest, exist_ok=True)\n\n \
+          \       objects = client.list_objects(minio_bucket, prefix=directory_path,\
+          \ recursive=True)\n\n        for obj in objects:\n            file_path\
+          \ = os.path.join(dest, obj.object_name.replace(directory_path, \"\").lstrip(\"\
+          /\"))\n            os.makedirs(os.path.dirname(file_path), exist_ok=True)\n\
+          \n            print(f\"Downloading: {obj.object_name} -> {file_path}\")\n\
+          \            client.fget_object(minio_bucket, obj.object_name, file_path)\n\
+          \n        print(\"Download complete.\")\n\n    remote_feature_repo_dir =\
+          \ os.getenv(\"REMOTE_FEATURE_REPO_DIR\")\n    local_dest = \"feature_repo\"\
+          \n\n    download_artifacts(remote_feature_repo_dir, local_dest)\n\n    fetch_historical_features_entity_df(local_dest).to_csv(output_df.path,\
+          \ index=False)\n\n"
+        image: quay.io/hbelmiro/fraud-detection-e2e-demo-retrieve-features:dev-17385897883N
+pipelineInfo:
+  name: fraud-detection-e2e-pipeline
+root:
+  dag:
+    tasks:
+      create-features:
+        cachingOptions: {}
+        componentRef:
+          name: comp-create-features
+        taskInfo:
+          name: create-features
+      read-dataset:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-read-dataset
+        dependentTasks:
+        - retrieve-features
+        inputs:
+          artifacts:
+            dataset:
+              taskOutputArtifact:
+                outputArtifactKey: output_df
+                producerTask: retrieve-features
+        taskInfo:
+          name: read-dataset
+      retrieve-features:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-retrieve-features
+        dependentTasks:
+        - create-features
+        inputs:
+          parameters:
+            features_ok:
+              taskOutputParameter:
+                outputParameterKey: features_ok
+                producerTask: create-features
+        taskInfo:
+          name: retrieve-features
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.11.0

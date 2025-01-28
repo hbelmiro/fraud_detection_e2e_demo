@@ -18,9 +18,10 @@ from feast.feature_logging import LoggingConfig
 from feast.infra.offline_stores.file_source import FileLoggingDestination
 from pandas import Series
 
-DATA_DIR = "data"
-INPUT_DIR = os.path.join(DATA_DIR, "input")
-OUTPUT_DIR = os.path.join(DATA_DIR, "output")
+LOCAL_FEATURE_REPO_DIR="."
+LOCAL_DATA_DIR = os.path.join(LOCAL_FEATURE_REPO_DIR, "data")
+LOCAL_INPUT_DIR = os.path.join(LOCAL_DATA_DIR, "input")
+LOCAL_OUTPUT_DIR = os.path.join(LOCAL_DATA_DIR, "output")
 
 
 def calculate_point_in_time_features(label_dataset, transactions_df) -> pd.DataFrame:
@@ -77,9 +78,9 @@ def float_to_bool(column: Series):
 def get_features() -> pd.DataFrame:
     print("loading data...")
 
-    train_set = pd.read_csv(os.path.join(INPUT_DIR, "train.csv"))
-    test_set = pd.read_csv(os.path.join(INPUT_DIR, "test.csv"))
-    validate_set = pd.read_csv(os.path.join(INPUT_DIR, "validate.csv"))
+    train_set = pd.read_csv(os.path.join(LOCAL_INPUT_DIR, "train.csv"))
+    test_set = pd.read_csv(os.path.join(LOCAL_INPUT_DIR, "test.csv"))
+    validate_set = pd.read_csv(os.path.join(LOCAL_INPUT_DIR, "validate.csv"))
     train_set["set"] = "train"
     test_set["set"] = "test"
     validate_set["set"] = "valid"
@@ -113,7 +114,7 @@ def get_features() -> pd.DataFrame:
         ]
     )
 
-    user_purchase_history = pd.read_csv(os.path.join(INPUT_DIR, "raw_transaction_datasource.csv"))
+    user_purchase_history = pd.read_csv(os.path.join(LOCAL_INPUT_DIR, "raw_transaction_datasource.csv"))
 
     features_df = calculate_point_in_time_features(label_dataset, user_purchase_history)
 
@@ -125,12 +126,10 @@ def get_features() -> pd.DataFrame:
     return features_df
 
 
-features_file_name = os.path.join(OUTPUT_DIR, "features.csv")
-entity_file_name = os.path.join(OUTPUT_DIR, "entity.csv")
+features_file_name = os.path.join(LOCAL_OUTPUT_DIR, "features.csv")
+entity_file_name = os.path.join(LOCAL_OUTPUT_DIR, "entity.csv")
 
 features = get_features()
-
-os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 entity_df = features[["created", "updated", "user_id"]]
 entity_df.rename(columns={'created': 'created_timestamp', 'updated': 'event_timestamp'}, inplace=True)

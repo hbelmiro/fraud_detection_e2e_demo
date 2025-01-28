@@ -1,0 +1,11 @@
+*.pyc
+*.pyo
+feature_repo/.idea
+feature_repo/.DS_Store
+feature_repo/__pycache__
+feature_repo/data/entity.csv
+feature_repo/data/features.csv
+feature_repo/data/features.parquet
+feature_repo/data/online_store.db
+feature_repo/data/raw_transaction_datasource.csv
+feature_repo/data/registry.db

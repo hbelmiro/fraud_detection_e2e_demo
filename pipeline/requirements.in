@@ -1,0 +1,4 @@
+kfp==2.11.0
+minio
+feast
+pandas
