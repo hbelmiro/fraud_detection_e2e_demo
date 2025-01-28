@@ -39,7 +39,7 @@ def calculate_point_in_time_features(label_dataset, transactions_df) -> pd.DataF
     ).dt.days
 
     # Group by user_id and created to calculate features
-    features = (
+    features_df: pd.DataFrame = (
         transactions_before.groupby(["user_id", "created_x"])
         .agg(
             num_prev_transactions=("transaction_amount", "count"),
@@ -56,7 +56,7 @@ def calculate_point_in_time_features(label_dataset, transactions_df) -> pd.DataF
     final_df = (
         pd.merge(
             label_dataset,
-            features,
+            features_df,
             left_on=["user_id", "created"],
             right_on=["user_id", "created_x"],
             how="left",
@@ -82,22 +82,22 @@ def get_features() -> pd.DataFrame:
     test_set["set"] = "test"
     validate_set["set"] = "valid"
 
-    df = pd.concat([train_set, test_set, validate_set], axis=0).reset_index(drop=True)
+    all_sets = pd.concat([train_set, test_set, validate_set], axis=0).reset_index(drop=True)
 
-    df['fraud'] = float_to_bool(df['fraud'])
-    df['repeat_retailer'] = float_to_bool(df['repeat_retailer'])
-    df['used_chip'] = float_to_bool(df['used_chip'])
-    df['used_pin_number'] = float_to_bool(df['used_pin_number'])
-    df['online_order'] = float_to_bool(df['online_order'])
+    all_sets['fraud'] = float_to_bool(all_sets['fraud'])
+    all_sets['repeat_retailer'] = float_to_bool(all_sets['repeat_retailer'])
+    all_sets['used_chip'] = float_to_bool(all_sets['used_chip'])
+    all_sets['used_pin_number'] = float_to_bool(all_sets['used_pin_number'])
+    all_sets['online_order'] = float_to_bool(all_sets['online_order'])
 
-    df["user_id"] = [f"user_{i}" for i in range(df.shape[0])]
-    df["transaction_id"] = [f"txn_{i}" for i in range(df.shape[0])]
+    all_sets["user_id"] = [f"user_{i}" for i in range(all_sets.shape[0])]
+    all_sets["transaction_id"] = [f"txn_{i}" for i in range(all_sets.shape[0])]
 
     for date_col in ["created", "updated"]:
-        df[date_col] = pd.Timestamp.now()
+        all_sets[date_col] = pd.Timestamp.now()
 
     label_dataset = pd.DataFrame(
-        df[
+        all_sets[
             [
                 "user_id",
                 "fraud",
@@ -113,14 +113,14 @@ def get_features() -> pd.DataFrame:
 
     user_purchase_history = pd.read_csv(os.path.join(DATA_DIR, "raw_transaction_datasource.csv"))
 
-    features = calculate_point_in_time_features(label_dataset, user_purchase_history)
+    features_df = calculate_point_in_time_features(label_dataset, user_purchase_history)
 
-    features = features.merge(
-        df[["user_id", "created", "used_chip", "used_pin_number", "online_order"]],
+    features_df = features_df.merge(
+        all_sets[["user_id", "created", "used_chip", "used_pin_number", "online_order"]],
         on=["user_id", "created"],
     )
 
-    return features
+    return features_df
 
 
 features_file_name = os.path.join(DATA_DIR, "features.csv")

@@ -1,5 +1,4 @@
 import os
-from datetime import datetime
 
 import pandas as pd
 from feast import FeatureStore
@@ -7,68 +6,12 @@ from feast import FeatureStore
 
 def run_demo():
     store = FeatureStore(repo_path="feature_repo/")
-    # print("\n--- Run feast apply ---")
-    # subprocess.run(["feast", "apply"])
 
     print("\n--- Historical features for training ---")
-    fetch_historical_features_entity_df(store, for_batch_scoring=False)
-
-    # print("\n--- Historical features for batch scoring ---")
-    # fetch_historical_features_entity_df(store, for_batch_scoring=True)
-    #
-    # print("\n--- Load features into online store ---")
-    # store.materialize_incremental(end_date=datetime.now())
-    #
-    # print("\n--- Online features ---")
-    # fetch_online_features(store)
-    #
-    # print("\n--- Online features retrieved (instead) through a feature service---")
-    # fetch_online_features(store, source="feature_service")
-    #
-    # print(
-    #     "\n--- Online features retrieved (using feature service v3, which uses a feature view with a push source---"
-    # )
-    # fetch_online_features(store, source="push")
-    #
-    # print("\n--- Simulate a stream event ingestion of the hourly stats df ---")
-    # event_df = pd.DataFrame.from_dict(
-    #     {
-    #         "driver_id": [1001],
-    #         "event_timestamp": [
-    #             datetime.now(),
-    #         ],
-    #         "created": [
-    #             datetime.now(),
-    #         ],
-    #         "conv_rate": [1.0],
-    #         "acc_rate": [1.0],
-    #         "avg_daily_trips": [1000],
-    #     }
-    # )
-    # print(event_df)
-    # store.push("driver_stats_push_source", event_df, to=PushMode.ONLINE_AND_OFFLINE)
-    #
-    # print("\n--- Online features again with updated values from a stream push---")
-    # fetch_online_features(store, source="push")
-    #
-    # print("\n--- Run feast teardown ---")
-    # subprocess.run(["feast", "teardown"])
+    fetch_historical_features_entity_df(store)
 
 
-def fetch_historical_features_entity_df(store: FeatureStore, for_batch_scoring: bool):
-    # Note: see https://docs.feast.dev/getting-started/concepts/feature-retrieval for more details on how to retrieve
-    # for all entities in the offline store instead
-    # entity_df = pd.DataFrame.from_dict(
-    #     {
-    #         "user_id": ["user_1", "user_2", "user_3"],
-    #         "created": [
-    #             datetime(2025, 1, 21, 10, 29, 46, 836209),
-    #             datetime(2025, 1, 21, 10, 29, 46, 836209),
-    #             datetime(2025, 1, 21, 10, 29, 46, 836209),
-    #         ],
-    #     }
-    # )
-
+def fetch_historical_features_entity_df(store: FeatureStore):
     entity_df = pd.read_csv(os.path.join("feature_repo/data/entity.csv"))
     entity_df["created_timestamp"] = pd.to_datetime("now", utc=True)
     entity_df["event_timestamp"] = pd.to_datetime("now", utc=True)
@@ -86,7 +29,6 @@ def fetch_historical_features_entity_df(store: FeatureStore, for_batch_scoring: 
 
 def fetch_online_features(store, source: str = ""):
     entity_rows = [
-        # {join_key: entity_value}
         {
             "driver_id": 1001,
             "val_to_add": 1000,

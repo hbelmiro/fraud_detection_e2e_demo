@@ -10,7 +10,7 @@ from keras.models import Sequential
 from pyspark import Row
 from pyspark.ml.feature import StandardScaler
 from pyspark.ml.linalg import Vectors
-from pyspark.sql import SparkSession, Column
+from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, when
 from sklearn.utils import class_weight
 
@@ -55,15 +55,15 @@ def build_model(feature_indexes: list[int]) -> Sequential:
     return model
 
 
-def train_model(X_train, X_val, y_train, y_val, class_weights, model):
+def train_model(x_train, x_val, y_train, y_val, class_weights, model):
     import time
     start = time.time()
     epochs = 2
-    history = model.fit(
-        X_train,
+    model.fit(
+        x_train,
         y_train,
         epochs=epochs,
-        validation_data=(X_val, y_val),
+        validation_data=(x_val, y_val),
         verbose=True,
         class_weight=class_weights
     )
@@ -71,19 +71,19 @@ def train_model(X_train, X_val, y_train, y_val, class_weights, model):
     print(f"Training of model is complete. Took {end - start} seconds")
 
 
-def save_model(X_train, model):
+def save_model(x_train, model):
     import tensorflow as tf
     # Normally we use tf2.onnx.convert.from_keras.
     # workaround for tf2onnx bug https://github.com/onnx/tensorflow-onnx/issues/2348
     # Wrap the model in a `tf.function`
-    @tf.function(input_signature=[tf.TensorSpec([None, X_train.shape[1]], tf.float32, name='dense_input')])
+    @tf.function(input_signature=[tf.TensorSpec([None, x_train.shape[1]], tf.float32, name='dense_input')])
     def model_fn(x):
         return model(x)
 
     # Convert the Keras model to ONNX
     model_proto, _ = tf2onnx.convert.from_function(
         model_fn,
-        input_signature=[tf.TensorSpec([None, X_train.shape[1]], tf.float32, name='dense_input')]
+        input_signature=[tf.TensorSpec([None, x_train.shape[1]], tf.float32, name='dense_input')]
     )
     # Save the model as ONNX for easy use of ModelMesh
     os.makedirs("models/fraud/1", exist_ok=True)
@@ -111,20 +111,20 @@ def main():
     validate_features = features.filter(features["set"] == "valid")
 
     # Select features
-    X_train = train_features.select([col(features.columns[i]) for i in feature_indexes]).rdd.map(
+    x_train = train_features.select([col(features.columns[i]) for i in feature_indexes]).rdd.map(
         lambda x: Vectors.dense(x)).collect()
     y_train = train_features.select(col(features.columns[label_indexes[0]])).rdd.map(lambda x: x[0]).collect()
-    X_val = validate_features.select([col(features.columns[i]) for i in feature_indexes]).rdd.map(
+    x_val = validate_features.select([col(features.columns[i]) for i in feature_indexes]).rdd.map(
         lambda x: Vectors.dense(x)).collect()
     y_val = validate_features.select(col(features.columns[label_indexes[0]])).rdd.map(lambda x: x[0]).collect()
-    X_test = test_features.select([col(features.columns[i]) for i in feature_indexes]).rdd.map(
+    x_test = test_features.select([col(features.columns[i]) for i in feature_indexes]).rdd.map(
         lambda x: Vectors.dense(x)).collect()
     y_test = test_features.select(col(features.columns[label_indexes[0]])).rdd.map(lambda x: x[0]).collect()
 
     # Convert to numpy arrays for use with Keras
-    X_train = np.array(X_train)
-    X_val = np.array(X_val)
-    X_test = np.array(X_test)
+    x_train = np.array(x_train)
+    x_val = np.array(x_val)
+    x_test = np.array(x_test)
     y_train = np.array(y_train)
     y_val = np.array(y_val)
     y_test = np.array(y_test)
@@ -132,9 +132,9 @@ def main():
     # Scale the data to remove mean and have unit variance. The data will be between -1 and 1, which makes it a lot easier for the model to learn than random (and potentially large) values.
     # It is important to only fit the scaler to the training data, otherwise you are leaking information about the global distribution of variables (which is influenced by the test set) into the training set.
     scaler = StandardScaler(inputCol="features", outputCol="scaled_features")
-    train_df = spark.createDataFrame([(Vectors.dense(X_train[i]),) for i in range(len(X_train))], ["features"])
-    test_df = spark.createDataFrame([(Vectors.dense(X_test[i]),) for i in range(len(X_test))], ["features"])
-    val_df = spark.createDataFrame([(Vectors.dense(X_val[i]),) for i in range(len(X_val))], ["features"])
+    train_df = spark.createDataFrame([(Vectors.dense(x_train[i]),) for i in range(len(x_train))], ["features"])
+    test_df = spark.createDataFrame([(Vectors.dense(x_test[i]),) for i in range(len(x_test))], ["features"])
+    val_df = spark.createDataFrame([(Vectors.dense(x_val[i]),) for i in range(len(x_val))], ["features"])
 
     scaler_model = scaler.fit(train_df)
     train_df = scaler_model.transform(train_df)
@@ -142,11 +142,11 @@ def main():
     val_df = scaler_model.transform(val_df)
 
     # Extract scaled data
-    X_train = np.array([row.scaled_features.toArray() for row in train_df.collect()])
-    X_val = np.array([row.scaled_features.toArray() for row in val_df.collect()])
-    X_test = np.array([row.scaled_features.toArray() for row in test_df.collect()])
+    x_train = np.array([row.scaled_features.toArray() for row in train_df.collect()])
+    x_val = np.array([row.scaled_features.toArray() for row in val_df.collect()])
+    x_test = np.array([row.scaled_features.toArray() for row in test_df.collect()])
 
-    test_data = [Row(features=Vectors.dense(X_test[i]), label=float(y_test[i])) for i in range(len(X_test))]
+    test_data = [Row(features=Vectors.dense(x_test[i]), label=float(y_test[i])) for i in range(len(x_test))]
     test_df = spark.createDataFrame(test_data)
 
     Path("artifact").mkdir(parents=True, exist_ok=True)
@@ -159,9 +159,9 @@ def main():
 
     model: Sequential = build_model(feature_indexes)
 
-    train_model(X_train, X_val, y_train, y_val, class_weights, model)
+    train_model(x_train, x_val, y_train, y_val, class_weights, model)
 
-    save_model(X_train, model)
+    save_model(x_train, model)
 
 
 if __name__ == "__main__":

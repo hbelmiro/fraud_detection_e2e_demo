@@ -6,7 +6,7 @@ from pyspark.sql import SparkSession
 
 spark = SparkSession.builder.appName("FraudDetection").getOrCreate()
 
-# Load the test data and scaler:
+# Load the test data and scaler
 scaler_model = StandardScalerModel.load("artifact/scaler_model")
 test_df = spark.read.parquet("artifact/test_data.parquet")
 
@@ -60,10 +60,10 @@ ConfusionMatrixDisplay(c_matrix).plot()
 
 sally_transaction_details = [
     [0.3111400080477545,
-    1.9459399775518593,
-    1.0,
-    0.0,
-    0.0]
+     1.9459399775518593,
+     1.0,
+     0.0,
+     0.0]
 ]
 
 sally_df = spark.createDataFrame([(Vectors.dense(sally_transaction_details[0]),)], ["features"])
