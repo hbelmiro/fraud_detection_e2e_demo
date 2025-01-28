@@ -67,7 +67,7 @@ flatbuffers==25.1.24
     #   onnxruntime
     #   tensorflow-macos
     #   tf2onnx
-fonttools==4.55.6
+fonttools==4.55.7
     # via matplotlib
 fsspec==2024.12.0
     # via dask
@@ -196,7 +196,7 @@ partd==1.4.2
     # via dask
 pillow==11.1.0
     # via matplotlib
-proto-plus==1.25.0
+proto-plus==1.26.0
     # via feast
 protobuf==3.20.3
     # via

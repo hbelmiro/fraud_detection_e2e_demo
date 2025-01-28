@@ -1,5 +1,4 @@
 import os
-import pickle
 from pathlib import Path
 
 import numpy as np
@@ -9,17 +8,29 @@ import tf2onnx
 from keras.layers import Dense, Dropout, BatchNormalization, Activation, Input
 from keras.models import Sequential
 from pyspark import Row
-from pyspark.sql import SparkSession
 from pyspark.ml.feature import StandardScaler
 from pyspark.ml.linalg import Vectors
-from pyspark.sql.functions import col
+from pyspark.sql import SparkSession, Column
+from pyspark.sql.functions import col, when
 from sklearn.utils import class_weight
 
 spark = SparkSession.builder.appName("FraudDetection").getOrCreate()
 
 
+def bool_to_float(df, column_names: list):
+    for column_name in column_names:
+        df = df.withColumn(column_name, when(col(column_name) == True, 1.0).otherwise(0.0))
+
+    return df
+
+
 def get_features() -> pd.DataFrame:
-    return spark.read.csv("../feature_engineering/feature_repo/data/features.csv", header=True, inferSchema=True)
+    features = spark.read.csv("../feature_engineering/feature_repo/data/features.csv", header=True,
+                              inferSchema=True)
+
+    features = bool_to_float(features, ["fraud", "used_chip", "used_pin_number", "online_order"])
+
+    return features
 
 
 def build_model(feature_indexes: list[int]) -> Sequential:

@@ -16,6 +16,7 @@ from feast import (
 )
 from feast.feature_logging import LoggingConfig
 from feast.infra.offline_stores.file_source import FileLoggingDestination
+from pandas import Series
 
 DATA_DIR = "data"
 
@@ -67,6 +68,10 @@ def calculate_point_in_time_features(label_dataset, transactions_df) -> pd.DataF
     return final_df
 
 
+def float_to_bool(column: Series):
+    return column.map({0.0: False, 1.0: True})
+
+
 def get_features() -> pd.DataFrame:
     print("loading data...")
 
@@ -78,6 +83,12 @@ def get_features() -> pd.DataFrame:
     validate_set["set"] = "valid"
 
     df = pd.concat([train_set, test_set, validate_set], axis=0).reset_index(drop=True)
+
+    df['fraud'] = float_to_bool(df['fraud'])
+    df['repeat_retailer'] = float_to_bool(df['repeat_retailer'])
+    df['used_chip'] = float_to_bool(df['used_chip'])
+    df['used_pin_number'] = float_to_bool(df['used_pin_number'])
+    df['online_order'] = float_to_bool(df['online_order'])
 
     df["user_id"] = [f"user_{i}" for i in range(df.shape[0])]
     df["transaction_id"] = [f"txn_{i}" for i in range(df.shape[0])]
@@ -157,7 +168,7 @@ transactions_fv = FeatureView(
     # during retrieval for building a training dataset or serving features
     schema=[
         Field(name="user_id", dtype=feast.types.String),
-        Field(name="fraud", dtype=feast.types.Float32),
+        Field(name="fraud", dtype=feast.types.Bool),
         Field(name="created", dtype=feast.types.String),
         Field(name="updated", dtype=feast.types.String),
         Field(name="set", dtype=feast.types.String),
