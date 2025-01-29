@@ -25,7 +25,7 @@ def bool_to_float(df, column_names: list):
 
 
 def get_features() -> pd.DataFrame:
-    features = spark.read.csv("../feature_engineering/feature_repo/data/features.csv", header=True,
+    features = spark.read.csv("../feature_engineering/feature_repo/data/output/features.csv", header=True,
                               inferSchema=True)
 
     features = bool_to_float(features, ["fraud", "used_chip", "used_pin_number", "online_order"])
@@ -92,7 +92,6 @@ def save_model(x_train, model):
 
 def main():
     features = get_features()
-    # features.to_csv(os.path.join(data_dir, "final_data.csv"))
     # Set the input (X) and output (Y) data.
     # The only output data is whether it's fraudulent. All other fields are inputs to the model.
     feature_indexes: list[int] = [

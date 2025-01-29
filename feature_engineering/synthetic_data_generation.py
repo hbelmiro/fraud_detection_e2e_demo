@@ -75,9 +75,9 @@ def generate_random_transactions(
 
 
 print("loading data...")
-train = pd.read_csv(os.path.join("feature_repo", "data", "train.csv"))
-test = pd.read_csv(os.path.join("feature_repo", "data", "test.csv"))
-valid = pd.read_csv(os.path.join("feature_repo", "data", "validate.csv"))
+train = pd.read_csv(os.path.join("feature_repo", "data", "input", "train.csv"))
+test = pd.read_csv(os.path.join("feature_repo", "data", "input", "test.csv"))
+valid = pd.read_csv(os.path.join("feature_repo", "data", "input", "validate.csv"))
 
 train["set"] = "train"
 test["set"] = "test"
@@ -98,6 +98,7 @@ user_purchase_history = generate_random_transactions(
     max_days_back=365,
 )
 
+os.makedirs(os.path.join("feature_repo", "data", "input"), exist_ok=True)
 user_purchase_history.to_csv(
-    os.path.join("feature_repo/data", "raw_transaction_datasource.csv")
+    os.path.join("feature_repo", "data", "input", "raw_transaction_datasource.csv")
 )
