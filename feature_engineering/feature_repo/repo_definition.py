@@ -131,7 +131,6 @@ entity_file_name = os.path.join(OUTPUT_DIR, "entity.csv")
 features = get_features()
 
 os.makedirs(OUTPUT_DIR, exist_ok=True)
-features.to_csv(features_file_name)
 
 entity_df = features[["created", "updated", "user_id"]]
 entity_df.rename(columns={'created': 'created_timestamp', 'updated': 'event_timestamp'}, inplace=True)
@@ -142,7 +141,8 @@ project = Project(name="fraud_detection_e2e_demo", description="A project for dr
 # Define an entity for the driver. You can think of an entity as a primary key used to
 # fetch features.
 transaction = Entity(name="transaction", join_keys=["user_id"])
-df = pd.read_csv(features_file_name)
+# df = pd.read_csv(features_file_name)
+df = features
 df["created"] = pd.to_datetime(df["created"], errors="coerce", utc=True)
 df["updated"] = pd.to_datetime(df["updated"], errors="coerce", utc=True)
 

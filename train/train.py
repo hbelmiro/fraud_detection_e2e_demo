@@ -25,7 +25,7 @@ def bool_to_float(df, column_names: list):
 
 
 def get_features() -> pd.DataFrame:
-    features = spark.read.csv("../feature_engineering/feature_repo/data/output/features.csv", header=True,
+    features = spark.read.csv("../feature_engineering/fetched_features/training_data.csv", header=True,
                               inferSchema=True)
 
     features = bool_to_float(features, ["fraud", "used_chip", "used_pin_number", "online_order"])
@@ -95,14 +95,14 @@ def main():
     # Set the input (X) and output (Y) data.
     # The only output data is whether it's fraudulent. All other fields are inputs to the model.
     feature_indexes: list[int] = [
-        7,  # distance_from_last_transaction
-        8,  # ratio_to_median_purchase_price
-        15,  # used_chip
-        16,  # used_pin_number
-        17,  # online_order
+        6,  # distance_from_last_transaction
+        7,  # ratio_to_median_purchase_price
+        9,  # used_chip
+        10,  # used_pin_number
+        11,  # online_order
     ]
     label_indexes = [
-        2  # fraud
+        8  # fraud
     ]
     # Split the data into train, validation, and test datasets
     train_features = features.filter(features["set"] == "train")

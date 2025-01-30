@@ -48,3 +48,4 @@ Thumbs.db
 /train/artifact/
 /feature_engineering/feature_repo/data/input/raw_transaction_datasource.csv
 /feature_engineering/feature_repo/data/output/
+/feature_engineering/fetched_features/training_data.csv
