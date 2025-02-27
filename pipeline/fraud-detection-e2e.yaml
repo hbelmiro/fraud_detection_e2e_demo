@@ -104,10 +104,12 @@ deploymentSpec:
         args:
         - --training-data-url
         - '{{$.inputs.artifacts[''dataset''].uri}}'
+        - --run-id
+        - '{{workflow.uid}}'
         command:
         - python
         - /app/train.py
-        image: quay.io/hbelmiro/fraud-detection-e2e-demo-train:dev-1740607151
+        image: quay.io/hbelmiro/fraud-detection-e2e-demo-train:dev-1740664801
 pipelineInfo:
   name: fraud-detection-e2e-pipeline
 root:
@@ -120,8 +122,7 @@ root:
         taskInfo:
           name: create-features
       retrieve-features:
-        cachingOptions:
-          enableCache: true
+        cachingOptions: {}
         componentRef:
           name: comp-retrieve-features
         dependentTasks:
@@ -135,8 +136,7 @@ root:
         taskInfo:
           name: retrieve-features
       train-model:
-        cachingOptions:
-          enableCache: true
+        cachingOptions: {}
         componentRef:
           name: comp-train-model
         dependentTasks:

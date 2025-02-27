@@ -81,9 +81,9 @@ def retrieve_features(features_ok: str, output_df: Output[Dataset]):
 
 @dsl.container_component
 def train_model(dataset: Input[Dataset]):
-    return dsl.ContainerSpec(image="quay.io/hbelmiro/fraud-detection-e2e-demo-train:dev-1740607151",
+    return dsl.ContainerSpec(image="quay.io/hbelmiro/fraud-detection-e2e-demo-train:dev-1740664801",
                              command=["python", "/app/train.py"],
-                             args=["--training-data-url", dataset.uri])
+                             args=["--training-data-url", dataset.uri, "--run-id", "{{workflow.uid}}"])
 
 
 @dsl.pipeline
@@ -92,5 +92,7 @@ def fraud_detection_e2e_pipeline():
     create_features_task.set_caching_options(False)
 
     retrieve_features_task = retrieve_features(features_ok=create_features_task.outputs['features_ok'])
+    retrieve_features_task.set_caching_options(False)
 
-    train_model(dataset=retrieve_features_task.outputs['output_df'])
+    train_model_task = train_model(dataset=retrieve_features_task.outputs['output_df'])
+    train_model_task.set_caching_options(False)

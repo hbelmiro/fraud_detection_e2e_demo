@@ -9,7 +9,7 @@ import pandas as pd
 import tf2onnx
 from keras.layers import Dense, Dropout, BatchNormalization, Activation, Input
 from keras.models import Sequential
-from minio import Minio
+from minio import Minio, S3Error
 from pyspark import Row
 from pyspark.ml.feature import StandardScaler
 from pyspark.ml.linalg import Vectors
@@ -27,6 +27,10 @@ MINIO_ENDPOINT = os.getenv("MINIO_ENDPOINT")
 MINIO_ACCESS_KEY = os.getenv("MINIO_ACCESS_KEY")
 MINIO_SECRET_KEY = os.getenv("MINIO_SECRET_KEY")
 MINIO_BUCKET = os.getenv("MINIO_BUCKET")
+
+REMOTE_FEATURE_REPO_DIR = os.getenv("FEATURE_REPO_REMOTE_DIR")
+REMOTE_DATA_DIR = os.path.join(REMOTE_FEATURE_REPO_DIR, "data")
+REMOTE_OUTPUT_DIR = os.path.join(REMOTE_DATA_DIR, "output")
 
 
 def bool_to_float(df, column_names: list):
@@ -105,7 +109,7 @@ def train_model(x_train, x_val, y_train, y_val, class_weights, model):
     print(f"Training of model is complete. Took {end - start} seconds")
 
 
-def save_model(x_train, model):
+def save_model(x_train, model) -> str:
     import tensorflow as tf
     # Normally we use tf2.onnx.convert.from_keras.
     # workaround for tf2onnx bug https://github.com/onnx/tensorflow-onnx/issues/2348
@@ -123,6 +127,25 @@ def save_model(x_train, model):
     os.makedirs("models/fraud/1", exist_ok=True)
     onnx.save(model_proto, "models/fraud/1/model.onnx")
 
+    return "models/fraud/1/model.onnx"
+
+
+def upload_model(model_local_path: str, run_id: str):
+    client = Minio(
+        MINIO_ENDPOINT.replace("http://", "").replace("https://", ""),
+        access_key=MINIO_ACCESS_KEY,
+        secret_key=MINIO_SECRET_KEY,
+        secure=MINIO_ENDPOINT.startswith("https://")
+    )
+
+    object_path = os.path.join(os.path.join(REMOTE_OUTPUT_DIR, run_id, "model.onnx"))
+
+    try:
+        print(f"Uploading: {model_local_path} -> {object_path}")
+        client.fput_object(MINIO_BUCKET, object_path, model_local_path)
+    except S3Error as e:
+        print(f"Failed to upload {model_local_path}: {e}")
+
 
 def main():
     if not all([MINIO_ENDPOINT, MINIO_ACCESS_KEY, MINIO_SECRET_KEY, MINIO_BUCKET]):
@@ -130,9 +153,11 @@ def main():
 
     parser = argparse.ArgumentParser(description="Train a model.")
     parser.add_argument("--training-data-url", required=True, help="URL to the training data CSV file.")
+    parser.add_argument("--run-id", required=True, help="The pipeline run ID.")
     args = parser.parse_args()
 
     features_url = args.training_data_url
+    run_id = args.run_id
 
     logging.info("Training data URL: {}".format(features_url))
 
@@ -205,7 +230,9 @@ def main():
 
     train_model(x_train, x_val, y_train, y_val, class_weights, model)
 
-    save_model(x_train, model)
+    model_path = save_model(x_train, model)
+
+    upload_model(model_path, run_id)
 
 
 if __name__ == "__main__":
