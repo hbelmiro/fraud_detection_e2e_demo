@@ -7,14 +7,6 @@ components:
       parameters:
         features_ok:
           parameterType: STRING
-  comp-read-dataset:
-    executorLabel: exec-read-dataset
-    inputDefinitions:
-      artifacts:
-        dataset:
-          artifactType:
-            schemaTitle: system.Dataset
-            schemaVersion: 0.0.1
   comp-retrieve-features:
     executorLabel: exec-retrieve-features
     inputDefinitions:
@@ -27,6 +19,20 @@ components:
           artifactType:
             schemaTitle: system.Dataset
             schemaVersion: 0.0.1
+  comp-train-model:
+    executorLabel: exec-train-model
+    inputDefinitions:
+      artifacts:
+        dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+    outputDefinitions:
+      artifacts:
+        model:
+          artifactType:
+            schemaTitle: system.Model
+            schemaVersion: 0.0.1
 deploymentSpec:
   executors:
     exec-create-features:
@@ -38,36 +44,6 @@ deploymentSpec:
         - -c
         - python /app/feast_apply.py --feature-repo-path=/app/feature_repo
         image: quay.io/hbelmiro/fraud-detection-e2e-demo-feast:dev-17404879823N
-    exec-read-dataset:
-      container:
-        args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - read_dataset
-        command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.11.0'\
-          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
-          $0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
-
-
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
-
-          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
-
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef read_dataset(dataset: Input[Dataset]):\n    with open(dataset.path,\
-          \ \"r\") as f:\n        data = f.read()\n    print(\"Dataset content:\"\
-          , data)\n\n"
-        image: python:3.11
     exec-retrieve-features:
       container:
         args:
@@ -129,6 +105,17 @@ deploymentSpec:
           \n\n    download_artifacts(remote_feature_repo_dir, local_dest)\n\n    fetch_historical_features_entity_df(local_dest).to_csv(output_df.path,\
           \ index=False)\n\n"
         image: quay.io/hbelmiro/fraud-detection-e2e-demo-retrieve-features:dev-17385897883N
+    exec-train-model:
+      container:
+        args:
+        - --training-data-url
+        - '{{$.inputs.artifacts[''dataset''].uri}}'
+        - --model
+        - '{{$.outputs.artifacts[''model''].path}}'
+        command:
+        - python
+        - /app/train.py
+        image: quay.io/hbelmiro/fraud-detection-e2e-demo-train:dev-1740667589
 pipelineInfo:
   name: fraud-detection-e2e-pipeline
 root:
@@ -140,24 +127,8 @@ root:
           name: comp-create-features
         taskInfo:
           name: create-features
-      read-dataset:
-        cachingOptions:
-          enableCache: true
-        componentRef:
-          name: comp-read-dataset
-        dependentTasks:
-        - retrieve-features
-        inputs:
-          artifacts:
-            dataset:
-              taskOutputArtifact:
-                outputArtifactKey: output_df
-                producerTask: retrieve-features
-        taskInfo:
-          name: read-dataset
       retrieve-features:
-        cachingOptions:
-          enableCache: true
+        cachingOptions: {}
         componentRef:
           name: comp-retrieve-features
         dependentTasks:
@@ -170,5 +141,19 @@ root:
                 producerTask: create-features
         taskInfo:
           name: retrieve-features
+      train-model:
+        cachingOptions: {}
+        componentRef:
+          name: comp-train-model
+        dependentTasks:
+        - retrieve-features
+        inputs:
+          artifacts:
+            dataset:
+              taskOutputArtifact:
+                outputArtifactKey: output_df
+                producerTask: retrieve-features
+        taskInfo:
+          name: train-model
 schemaVersion: 2.1.0
 sdkVersion: kfp-2.11.0

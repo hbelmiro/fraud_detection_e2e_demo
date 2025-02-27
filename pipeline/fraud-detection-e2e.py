@@ -1,5 +1,5 @@
 from kfp import dsl
-from kfp.dsl import Input, Dataset, Output
+from kfp.dsl import Input, Dataset, Output, Model
 
 
 @dsl.container_component
@@ -79,16 +79,11 @@ def retrieve_features(features_ok: str, output_df: Output[Dataset]):
     fetch_historical_features_entity_df(local_dest).to_csv(output_df.path, index=False)
 
 
-@dsl.component(base_image="python:3.11")
-def read_dataset(dataset: Input[Dataset]):
-    with open(dataset.path, "r") as f:
-        data = f.read()
-    print("Dataset content:", data)
-
-
-@dsl.component(base_image="python:3.11")
-def fail(message: Input[str]):
-    raise ValueError(message)
+@dsl.container_component
+def train_model(dataset: Input[Dataset], model: Output[Model]):
+    return dsl.ContainerSpec(image="quay.io/hbelmiro/fraud-detection-e2e-demo-train:dev-1740667589",
+                             command=["python", "/app/train.py"],
+                             args=["--training-data-url", dataset.uri, "--model", model.path])
 
 
 @dsl.pipeline
@@ -97,5 +92,7 @@ def fraud_detection_e2e_pipeline():
     create_features_task.set_caching_options(False)
 
     retrieve_features_task = retrieve_features(features_ok=create_features_task.outputs['features_ok'])
+    retrieve_features_task.set_caching_options(False)
 
-    read_dataset(dataset=retrieve_features_task.outputs['output_df'])
+    train_model_task = train_model(dataset=retrieve_features_task.outputs['output_df'])
+    train_model_task.set_caching_options(False)
