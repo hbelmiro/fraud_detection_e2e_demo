@@ -1,6 +1,8 @@
 from kfp import dsl
 from kfp.dsl import Input, Dataset, Output, Model
 
+PIPELINE_IMAGE = "quay.io/hbelmiro/fraud-detection-e2e-demo-pipeline:dev-1740752394"
+
 
 @dsl.container_component
 def create_features(features_ok: dsl.OutputPath(str)):
@@ -9,18 +11,31 @@ def create_features(features_ok: dsl.OutputPath(str)):
                              args=[features_ok])
 
 
-@dsl.component(base_image="quay.io/hbelmiro/fraud-detection-e2e-demo-retrieve-features:dev-17385897883N")
+@dsl.component(base_image=PIPELINE_IMAGE)
 def retrieve_features(features_ok: str, output_df: Output[Dataset]):
+    import logging
+    from feast import FeatureStore
+    import pandas as pd
+    import os
+    from minio import Minio
+
+    logging.basicConfig(
+        level=logging.INFO,
+    )
+
+    minio_endpoint = os.getenv("MINIO_ENDPOINT")
+    minio_access_key = os.getenv("MINIO_ACCESS_KEY")
+    minio_secret_key = os.getenv("MINIO_SECRET_KEY")
+    minio_bucket = os.getenv("MINIO_BUCKET")
+    remote_feature_repo_dir = os.getenv("REMOTE_FEATURE_REPO_DIR")
+
+    if not all([minio_endpoint, minio_access_key, minio_secret_key, minio_bucket, remote_feature_repo_dir]):
+        raise ValueError("Missing required environment variables!")
+
     if features_ok != "true":
         raise ValueError("features not ok")
 
-    import os
-
     def fetch_historical_features_entity_df(features_repo: str):
-        from feast import FeatureStore
-        import pandas as pd
-        import os
-
         store = FeatureStore(repo_path=features_repo)
         entity_df = pd.read_csv(os.path.join(features_repo, "data", "output", "entity.csv"))
         entity_df["created_timestamp"] = pd.to_datetime("now", utc=True)
@@ -43,13 +58,8 @@ def retrieve_features(features_ok: str, output_df: Output[Dataset]):
         return features
 
     def download_artifacts(directory_path, dest):
-        import os
-        from minio import Minio
-
-        minio_endpoint = os.getenv("MINIO_ENDPOINT")
-        minio_access_key = os.getenv("MINIO_ACCESS_KEY")
-        minio_secret_key = os.getenv("MINIO_SECRET_KEY")
-        minio_bucket = os.getenv("MINIO_BUCKET")
+        logging.info("directory_path: {}".format(directory_path))
+        logging.info("dest: {}".format(dest))
 
         client = Minio(
             minio_endpoint.replace("http://", "").replace("https://", ""),
@@ -71,7 +81,6 @@ def retrieve_features(features_ok: str, output_df: Output[Dataset]):
 
         print("Download complete.")
 
-    remote_feature_repo_dir = os.getenv("REMOTE_FEATURE_REPO_DIR")
     local_dest = "feature_repo"
 
     download_artifacts(remote_feature_repo_dir, local_dest)
@@ -86,6 +95,38 @@ def train_model(dataset: Input[Dataset], model: Output[Model]):
                              args=["--training-data-url", dataset.uri, "--model", model.path])
 
 
+@dsl.component(base_image=PIPELINE_IMAGE)
+def register_model(model: Input[Model]):
+    from model_registry import ModelRegistry
+
+    print("uri: " + model.uri)
+
+    registry = ModelRegistry(
+        server_address="http://model-registry-service.kubeflow.svc.cluster.local",
+        port=8080,
+        author="fraud-detection-e2e-pipeline",
+        user_token="non-used",  # Just to avoid a warning
+        is_secure=False
+    )
+
+    registry.register_model(
+        name="fraud-detection",
+        uri=model.uri,
+        version="{{workflow.uid}}",
+        description="lorem ipsum",
+        model_format_name="onnx",
+        model_format_version="1",
+        storage_key="mlpipeline-minio-artifact",
+        metadata={
+            # can be one of the following types
+            "int_key": 1,
+            "bool_key": False,
+            "float_key": 3.14,
+            "str_key": "str_value",
+        }
+    )
+
+
 @dsl.pipeline
 def fraud_detection_e2e_pipeline():
     create_features_task = create_features()
@@ -96,3 +137,6 @@ def fraud_detection_e2e_pipeline():
 
     train_model_task = train_model(dataset=retrieve_features_task.outputs['output_df'])
     train_model_task.set_caching_options(False)
+
+    register_model_task = register_model(model=train_model_task.outputs['model'])
+    register_model_task.set_caching_options(False)
