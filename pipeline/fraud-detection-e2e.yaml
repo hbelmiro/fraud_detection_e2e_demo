@@ -15,6 +15,12 @@ components:
           artifactType:
             schemaTitle: system.Model
             schemaVersion: 0.0.1
+    outputDefinitions:
+      parameters:
+        model_name:
+          parameterType: STRING
+        model_version:
+          parameterType: STRING
   comp-retrieve-features:
     executorLabel: exec-retrieve-features
     inputDefinitions:
@@ -27,6 +33,14 @@ components:
           artifactType:
             schemaTitle: system.Dataset
             schemaVersion: 0.0.1
+  comp-serve:
+    executorLabel: exec-serve
+    inputDefinitions:
+      parameters:
+        model_name:
+          parameterType: STRING
+        model_version_name:
+          parameterType: STRING
   comp-train-model:
     executorLabel: exec-train-model
     inputDefinitions:
@@ -78,20 +92,23 @@ deploymentSpec:
 
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef register_model(model: Input[Model]):\n    from model_registry\
-          \ import ModelRegistry\n\n    print(\"uri: \" + model.uri)\n\n    registry\
-          \ = ModelRegistry(\n        server_address=\"http://model-registry-service.kubeflow.svc.cluster.local\"\
+          \ *\n\ndef register_model(model: Input[Model]) -> NamedTuple('outputs',\
+          \ model_name=str, model_version=str):\n    from model_registry import ModelRegistry\n\
+          \n    print(\"uri: \" + model.uri)\n\n    registry = ModelRegistry(\n  \
+          \      server_address=\"http://model-registry-service.kubeflow.svc.cluster.local\"\
           ,\n        port=8080,\n        author=\"fraud-detection-e2e-pipeline\",\n\
           \        user_token=\"non-used\",  # Just to avoid a warning\n        is_secure=False\n\
-          \    )\n\n    # MINIO_ENDPOINT = \"http://minio-service.kubeflow.svc.cluster.local:9000\"\
-          \n\n    registry.register_model(\n        name=\"my-model\",\n        uri=model.uri,\n\
-          \        version=\"{{workflow.uid}}\",\n        description=\"lorem ipsum\"\
-          ,\n        model_format_name=\"onnx\",\n        model_format_version=\"\
-          1\",\n        storage_key=\"mlpipeline-minio-artifact\",\n        metadata={\n\
+          \    )\n\n    model_name = \"fraud-detection\"\n    model_version = \"{{workflow.uid}}\"\
+          \n\n    registry.register_model(\n        name=model_name,\n        uri=model.uri,\n\
+          \        version=model_version,\n        description=\"lorem ipsum\",\n\
+          \        model_format_name=\"onnx\",\n        model_format_version=\"1\"\
+          ,\n        storage_key=\"mlpipeline-minio-artifact\",\n        metadata={\n\
           \            # can be one of the following types\n            \"int_key\"\
           : 1,\n            \"bool_key\": False,\n            \"float_key\": 3.14,\n\
-          \            \"str_key\": \"str_value\",\n        }\n    )\n\n"
-        image: quay.io/hbelmiro/fraud-detection-e2e-demo-pipeline:dev-1740752394
+          \            \"str_key\": \"str_value\",\n        }\n    )\n\n    outputs\
+          \ = NamedTuple('outputs', model_name=str, model_version=str)\n    return\
+          \ outputs(model_name, model_version)\n\n"
+        image: quay.io/hbelmiro/fraud-detection-e2e-demo-pipeline:dev
     exec-retrieve-features:
       container:
         args:
@@ -156,7 +173,60 @@ deploymentSpec:
           \ = \"feature_repo\"\n\n    download_artifacts(remote_feature_repo_dir,\
           \ local_dest)\n\n    fetch_historical_features_entity_df(local_dest).to_csv(output_df.path,\
           \ index=False)\n\n"
-        image: quay.io/hbelmiro/fraud-detection-e2e-demo-pipeline:dev-1740752394
+        image: quay.io/hbelmiro/fraud-detection-e2e-demo-pipeline:dev
+    exec-serve:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - serve
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.11.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef serve(model_name: str, model_version_name: str):\n    import\
+          \ logging\n    import kserve\n    from kubernetes import client\n    from\
+          \ kubernetes.client import V1Container\n    from model_registry import ModelRegistry\n\
+          \n    logging.info(\"serving model: {}\".format(model_name))\n    logging.info(\"\
+          model_version: {}\".format(model_version_name))\n\n    registry = ModelRegistry(\n\
+          \        server_address=\"http://model-registry-service.kubeflow.svc.cluster.local\"\
+          ,\n        port=8080,\n        author=\"fraud-detection-e2e-pipeline\",\n\
+          \        user_token=\"non-used\",  # Just to avoid a warning\n        is_secure=False\n\
+          \    )\n\n    model = registry.get_registered_model(model_name)\n    model_version\
+          \ = registry.get_model_version(model_name, model_version_name)\n    model_artifact\
+          \ = registry.get_model_artifact(model_name, model_version_name)\n\n    inference_service\
+          \ = kserve.V1beta1InferenceService(\n        api_version=kserve.constants.KSERVE_GROUP\
+          \ + \"/v1beta1\",\n        kind=\"InferenceService\",\n        metadata=client.V1ObjectMeta(\n\
+          \            name=model_name,\n            namespace=kserve.utils.get_default_target_namespace(),\n\
+          \            labels={\n                \"modelregistry/registered-model-id\"\
+          : model.id,\n                \"modelregistry/model-version-id\": model_version.id\n\
+          \            },\n        ),\n        spec=kserve.V1beta1InferenceServiceSpec(\n\
+          \            predictor=kserve.V1beta1PredictorSpec(\n                service_account_name=\"\
+          kserve-sa\",\n                containers=[\n                    V1Container(\n\
+          \                        name=\"inference-container\",\n               \
+          \         image=\"quay.io/hbelmiro/fraud-detection-e2e-demo-rest-predictor:latest\"\
+          ,  # TODO: Use the real image\n                        command=[\"python\"\
+          , \"predictor.py\"],\n                        args=[\"--model-name\", model_name,\
+          \ \"--model-version\", model_version_name]\n                    )\n    \
+          \            ]\n            )\n        ),\n    )\n    ks_client = kserve.KServeClient()\n\
+          \    ks_client.create(inference_service)\n\n"
+        image: quay.io/hbelmiro/fraud-detection-e2e-demo-pipeline:dev
     exec-train-model:
       container:
         args:
@@ -207,6 +277,24 @@ root:
                 producerTask: create-features
         taskInfo:
           name: retrieve-features
+      serve:
+        cachingOptions: {}
+        componentRef:
+          name: comp-serve
+        dependentTasks:
+        - register-model
+        inputs:
+          parameters:
+            model_name:
+              taskOutputParameter:
+                outputParameterKey: model_name
+                producerTask: register-model
+            model_version_name:
+              taskOutputParameter:
+                outputParameterKey: model_version
+                producerTask: register-model
+        taskInfo:
+          name: serve
       train-model:
         cachingOptions: {}
         componentRef:

@@ -1,0 +1,16 @@
+FROM quay.io/fedora/python-311
+
+WORKDIR /app
+
+COPY requirements.txt .
+
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
+
+COPY predictor.py .
+
+USER root
+RUN chown 1001:0 /app && \
+    chmod u+w /app
+
+USER default

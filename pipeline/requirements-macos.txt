@@ -100,8 +100,12 @@ google-resumable-media==2.7.2
     # via google-cloud-storage
 googleapis-common-protos==1.68.0
     # via google-api-core
-grpcio==1.70.0
+grpc-interceptor==0.15.4
     # via kserve
+grpcio==1.70.0
+    # via
+    #   grpc-interceptor
+    #   kserve
 gunicorn==23.0.0
     # via
     #   feast
@@ -136,7 +140,7 @@ kfp-pipeline-spec==0.6.0
     # via kfp
 kfp-server-api==2.3.0
     # via kfp
-kserve==0.14.1
+kserve==0.15.0
     # via -r requirements.in
 kubernetes==30.1.0
     # via
@@ -150,7 +154,7 @@ minio==7.2.15
     # via -r requirements.in
 mmh3==5.1.0
     # via feast
-model-registry==0.2.14
+model-registry==0.2.16
     # via -r requirements.in
 multidict==6.1.0
     # via

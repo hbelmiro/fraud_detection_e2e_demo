@@ -1,0 +1,19 @@
+apiVersion: serving.kserve.io/v1alpha1
+kind: ServingRuntime
+metadata:
+  name: onnxruntime-servingruntime
+  namespace: kubeflow
+spec:
+  supportedModelFormats:
+    - name: onnx
+      version: "1"
+      autoSelect: true
+  multiModel: false
+  containers:
+    - name: kserve-container
+      image: "nvcr.io/nvidia/tritonserver:21.08-py3"
+      imagePullPolicy: IfNotPresent
+      args:
+        - tritonserver
+        - --model-store=/mnt/models
+        - --allow-http=true

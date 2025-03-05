@@ -1,0 +1,12 @@
+[project]
+name = "rest-predictor"
+version = "0.0.1"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "kserve==0.15.0",
+    "model-registry==0.2.16",
+    "numpy",
+    "onnxruntime",
+    "boto3"
+]
