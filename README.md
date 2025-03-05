@@ -36,3 +36,13 @@ mlpipeline
         │       └── validate.csv
         └── feature_store.yaml
 ```
+
+## Install KServe on Kind
+
+https://kserve.github.io/website/master/get_started/#install-the-kserve-quickstart-environment
+
+### Adjust RBAC policies
+
+```shell
+kubectl apply -k ./manifests -n kubeflow
+```
