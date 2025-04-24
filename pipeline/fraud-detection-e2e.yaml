@@ -209,8 +209,7 @@ deploymentSpec:
           ,\n        port=8080,\n        author=\"fraud-detection-e2e-pipeline\",\n\
           \        user_token=\"non-used\",  # Just to avoid a warning\n        is_secure=False\n\
           \    )\n\n    model = registry.get_registered_model(model_name)\n    model_version\
-          \ = registry.get_model_version(model_name, model_version_name)\n    model_artifact\
-          \ = registry.get_model_artifact(model_name, model_version_name)\n\n    inference_service\
+          \ = registry.get_model_version(model_name, model_version_name)\n\n    inference_service\
           \ = kserve.V1beta1InferenceService(\n        api_version=kserve.constants.KSERVE_GROUP\
           \ + \"/v1beta1\",\n        kind=\"InferenceService\",\n        metadata=client.V1ObjectMeta(\n\
           \            name=model_name,\n            namespace=kserve.utils.get_default_target_namespace(),\n\
@@ -221,11 +220,11 @@ deploymentSpec:
           kserve-sa\",\n                containers=[\n                    V1Container(\n\
           \                        name=\"inference-container\",\n               \
           \         image=\"quay.io/hbelmiro/fraud-detection-e2e-demo-rest-predictor:latest\"\
-          ,  # TODO: Use the real image\n                        command=[\"python\"\
-          , \"predictor.py\"],\n                        args=[\"--model-name\", model_name,\
-          \ \"--model-version\", model_version_name]\n                    )\n    \
-          \            ]\n            )\n        ),\n    )\n    ks_client = kserve.KServeClient()\n\
-          \    ks_client.create(inference_service)\n\n"
+          ,\n                        command=[\"python\", \"predictor.py\"],\n   \
+          \                     args=[\"--model-name\", model_name, \"--model-version\"\
+          , model_version_name]\n                    )\n                ]\n      \
+          \      )\n        ),\n    )\n    ks_client = kserve.KServeClient()\n   \
+          \ ks_client.create(inference_service)\n\n"
         image: quay.io/hbelmiro/fraud-detection-e2e-demo-pipeline:dev
     exec-train-model:
       container:

@@ -1,0 +1,31 @@
+name: KFP Pipelines Validated
+
+on:
+  push:
+    branches: [ master ]
+
+  pull_request:
+    paths:
+      - '**/*.py'
+      - '**/*.yaml'
+      - '**/*.yml'
+      - '.github/workflows/validate-kfp-compiled-files.yaml'
+
+jobs:
+  check-pipelines:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Check pipelines
+        uses: ./.github/actions/validate-kfp-compiled-files
+        with:
+          pipelines-map-file: './.github/workflows/pipelines.json'
+          requirements-file: './pipeline/requirements-linux.txt'
