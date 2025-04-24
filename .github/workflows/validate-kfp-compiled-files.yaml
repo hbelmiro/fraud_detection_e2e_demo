@@ -25,7 +25,7 @@ jobs:
           python-version: '3.11'
 
       - name: Check pipelines
-        uses: ./.github/actions/validate-kfp-compiled-files
+        uses: hbelmiro/validate-kfp-compiled-files@0d944d338076798e179fd27834eb35eeb3b82e5d
         with:
           pipelines-map-file: './.github/workflows/pipelines.json'
           requirements-file: './pipeline/requirements-linux.txt'
