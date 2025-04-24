@@ -4,11 +4,13 @@ from kfp import dsl
 from kfp.dsl import Input, Dataset, Output, Model
 
 PIPELINE_IMAGE = "quay.io/hbelmiro/fraud-detection-e2e-demo-pipeline:dev"
+FEATURE_ENGINEERING_IMAGE = "quay.io/hbelmiro/fraud-detection-e2e-demo-feature-engineering:dev"
+TRAIN_IMAGE = "quay.io/hbelmiro/fraud-detection-e2e-demo-train:dev"
 
 
 @dsl.container_component
 def create_features(features_ok: dsl.OutputPath(str)):
-    return dsl.ContainerSpec(image="quay.io/hbelmiro/fraud-detection-e2e-demo-feast:dev-17404879823N",
+    return dsl.ContainerSpec(image=FEATURE_ENGINEERING_IMAGE,
                              command=["sh", "-c", "python /app/feast_apply.py --feature-repo-path=/app/feature_repo"],
                              args=[features_ok])
 
@@ -92,7 +94,7 @@ def retrieve_features(features_ok: str, output_df: Output[Dataset]):
 
 @dsl.container_component
 def train_model(dataset: Input[Dataset], model: Output[Model]):
-    return dsl.ContainerSpec(image="quay.io/hbelmiro/fraud-detection-e2e-demo-train:dev-1740667589",
+    return dsl.ContainerSpec(image=TRAIN_IMAGE,
                              command=["python", "/app/train.py"],
                              args=["--training-data-url", dataset.uri, "--model", model.path])
 
@@ -174,7 +176,7 @@ def serve(model_name: str, model_version_name: str):
                 containers=[
                     V1Container(
                         name="inference-container",
-                        image="quay.io/hbelmiro/fraud-detection-e2e-demo-rest-predictor:latest",
+                        image="quay.io/hbelmiro/fraud-detection-e2e-demo-rest-predictor:dev",
                         command=["python", "predictor.py"],
                         args=["--model-name", model_name, "--model-version", model_version_name]
                     )

@@ -65,7 +65,7 @@ deploymentSpec:
         - sh
         - -c
         - python /app/feast_apply.py --feature-repo-path=/app/feature_repo
-        image: quay.io/hbelmiro/fraud-detection-e2e-demo-feast:dev-17404879823N
+        image: quay.io/hbelmiro/fraud-detection-e2e-demo-feature-engineering:dev
     exec-register-model:
       container:
         args:
@@ -219,7 +219,7 @@ deploymentSpec:
           \            predictor=kserve.V1beta1PredictorSpec(\n                service_account_name=\"\
           kserve-sa\",\n                containers=[\n                    V1Container(\n\
           \                        name=\"inference-container\",\n               \
-          \         image=\"quay.io/hbelmiro/fraud-detection-e2e-demo-rest-predictor:latest\"\
+          \         image=\"quay.io/hbelmiro/fraud-detection-e2e-demo-rest-predictor:dev\"\
           ,\n                        command=[\"python\", \"predictor.py\"],\n   \
           \                     args=[\"--model-name\", model_name, \"--model-version\"\
           , model_version_name]\n                    )\n                ]\n      \
@@ -236,7 +236,7 @@ deploymentSpec:
         command:
         - python
         - /app/train.py
-        image: quay.io/hbelmiro/fraud-detection-e2e-demo-train:dev-1740667589
+        image: quay.io/hbelmiro/fraud-detection-e2e-demo-train:dev
 pipelineInfo:
   name: fraud-detection-e2e-pipeline
 root:

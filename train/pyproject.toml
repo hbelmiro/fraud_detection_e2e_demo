@@ -1,0 +1,20 @@
+[project]
+name = "train"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "feast",
+    "pyspark",
+    "keras>=2.14.0,<2.15", # due to tensorflow
+    "numpy<2", # due to keras
+    "pandas",
+    "onnx",
+    "onnxruntime",
+    "tensorflow>=2.9,<=2.15", # due to tf2onnx
+    "tf2onnx>=1.16.0", # due to numpy
+    "scikit-learn",
+    "matplotlib",
+    "minio",
+]
