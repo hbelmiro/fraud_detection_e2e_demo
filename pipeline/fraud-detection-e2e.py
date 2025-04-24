@@ -1,7 +1,9 @@
+from typing import NamedTuple
+
 from kfp import dsl
 from kfp.dsl import Input, Dataset, Output, Model
 
-PIPELINE_IMAGE = "quay.io/hbelmiro/fraud-detection-e2e-demo-pipeline:dev-1740752394"
+PIPELINE_IMAGE = "quay.io/hbelmiro/fraud-detection-e2e-demo-pipeline:dev"
 
 
 @dsl.container_component
@@ -96,7 +98,7 @@ def train_model(dataset: Input[Dataset], model: Output[Model]):
 
 
 @dsl.component(base_image=PIPELINE_IMAGE)
-def register_model(model: Input[Model]):
+def register_model(model: Input[Model]) -> NamedTuple('outputs', model_name=str, model_version=str):
     from model_registry import ModelRegistry
 
     print("uri: " + model.uri)
@@ -109,10 +111,13 @@ def register_model(model: Input[Model]):
         is_secure=False
     )
 
+    model_name = "fraud-detection"
+    model_version = "{{workflow.uid}}"
+
     registry.register_model(
-        name="fraud-detection",
+        name=model_name,
         uri=model.uri,
-        version="{{workflow.uid}}",
+        version=model_version,
         description="lorem ipsum",
         model_format_name="onnx",
         model_format_version="1",
@@ -125,6 +130,60 @@ def register_model(model: Input[Model]):
             "str_key": "str_value",
         }
     )
+
+    outputs = NamedTuple('outputs', model_name=str, model_version=str)
+    return outputs(model_name, model_version)
+
+
+@dsl.component(base_image=PIPELINE_IMAGE)
+def serve(model_name: str, model_version_name: str):
+    import logging
+    import kserve
+    from kubernetes import client
+    from kubernetes.client import V1Container
+    from model_registry import ModelRegistry
+
+    logging.info("serving model: {}".format(model_name))
+    logging.info("model_version: {}".format(model_version_name))
+
+    registry = ModelRegistry(
+        server_address="http://model-registry-service.kubeflow.svc.cluster.local",
+        port=8080,
+        author="fraud-detection-e2e-pipeline",
+        user_token="non-used",  # Just to avoid a warning
+        is_secure=False
+    )
+
+    model = registry.get_registered_model(model_name)
+    model_version = registry.get_model_version(model_name, model_version_name)
+
+    inference_service = kserve.V1beta1InferenceService(
+        api_version=kserve.constants.KSERVE_GROUP + "/v1beta1",
+        kind="InferenceService",
+        metadata=client.V1ObjectMeta(
+            name=model_name,
+            namespace=kserve.utils.get_default_target_namespace(),
+            labels={
+                "modelregistry/registered-model-id": model.id,
+                "modelregistry/model-version-id": model_version.id
+            },
+        ),
+        spec=kserve.V1beta1InferenceServiceSpec(
+            predictor=kserve.V1beta1PredictorSpec(
+                service_account_name="kserve-sa",
+                containers=[
+                    V1Container(
+                        name="inference-container",
+                        image="quay.io/hbelmiro/fraud-detection-e2e-demo-rest-predictor:latest",
+                        command=["python", "predictor.py"],
+                        args=["--model-name", model_name, "--model-version", model_version_name]
+                    )
+                ]
+            )
+        ),
+    )
+    ks_client = kserve.KServeClient()
+    ks_client.create(inference_service)
 
 
 @dsl.pipeline
@@ -140,3 +199,7 @@ def fraud_detection_e2e_pipeline():
 
     register_model_task = register_model(model=train_model_task.outputs['model'])
     register_model_task.set_caching_options(False)
+
+    serve_task = serve(model_name=register_model_task.outputs["model_name"],
+                       model_version_name=register_model_task.outputs["model_version"])
+    serve_task.set_caching_options(False)

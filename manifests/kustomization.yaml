@@ -1,0 +1,6 @@
+resources:
+  - role.yaml
+  - role-binding.yaml
+  - serving-runtime.yaml
+  - kserve-sa.yaml
+  - kserve-minio-secret.yaml
