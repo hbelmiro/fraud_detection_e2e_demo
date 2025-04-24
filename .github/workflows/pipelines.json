@@ -1,0 +1,3 @@
+{
+  "./pipeline/fraud-detection-e2e.py": "./pipeline/fraud-detection-e2e.yaml"
+}

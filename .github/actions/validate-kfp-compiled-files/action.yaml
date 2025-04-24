@@ -1,0 +1,25 @@
+name: 'Validate KFP Compiled Files'
+description: 'Validates if the changed Kubeflow Pipelines .py files were compiled'
+inputs:
+  pipelines-map-file:
+    description: 'The file with the mapping from .py to .yaml'
+    required: true
+  requirements-file:
+    description: 'The requirements.txt file'
+    required: true
+runs:
+  using: "composite"
+  steps:
+    - name: Install Python dependencies
+      shell: bash
+      run: pip install -r ${{ inputs.requirements-file }}
+
+    - name: Install jq (for JSON parsing)
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y jq
+
+    - name: Verify compiled pipelines
+      shell: bash
+      run: .github/actions/validate-kfp-compiled-files/verify_kfp_compiled.sh ${{ inputs.pipelines-map-file }}
