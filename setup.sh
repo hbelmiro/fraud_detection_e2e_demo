@@ -1,4 +1,6 @@
-#!/bin/bash
+#!/usr/bin/env bash
+
+set -euo pipefail
 
 # Configure MinIO Client
 mc alias set local http://localhost:9000 minio minio123
