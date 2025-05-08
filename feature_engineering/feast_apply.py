@@ -1,8 +1,6 @@
-import argparse
 import os
 import subprocess
 import sys
-from typing import TextIO
 
 from minio import Minio, S3Error
 
@@ -12,6 +10,7 @@ MINIO_SECRET_KEY = os.getenv("MINIO_SECRET_KEY")
 MINIO_BUCKET = os.getenv("MINIO_BUCKET")
 
 REMOTE_FEATURE_REPO_DIR = os.getenv("FEATURE_REPO_REMOTE_DIR")
+FEATURE_REPO_LOCAL_DIR = os.getenv("FEATURE_REPO_LOCAL_DIR")
 REMOTE_DATA_DIR = os.path.join(REMOTE_FEATURE_REPO_DIR, "data")
 REMOTE_INPUT_DIR = os.path.join(REMOTE_DATA_DIR, "input")
 REMOTE_OUTPUT_DIR = os.path.join(REMOTE_DATA_DIR, "output")
@@ -88,25 +87,24 @@ def download_artifacts(directory_path, dest):
         client.fget_object(MINIO_BUCKET, obj.object_name, file_path)
 
     print("Download complete.")
+    result = subprocess.run(["ls", "-la", dest], capture_output=True, text=True)
+    print("ls -la " + dest)
+    print(result.stdout)
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Run 'feast apply' in a specified feature repository path.")
-    parser.add_argument("--feature-repo-path", required=True, help="Path to the feature repository")
-    args = parser.parse_args()
-
-    if not all([MINIO_ENDPOINT, MINIO_ACCESS_KEY, MINIO_SECRET_KEY, MINIO_BUCKET]):
+    if not all([MINIO_ENDPOINT, MINIO_ACCESS_KEY, MINIO_SECRET_KEY, MINIO_BUCKET, FEATURE_REPO_LOCAL_DIR]):
         raise ValueError("Missing required environment variables!")
 
-    local_data_dir = os.path.join(args.feature_repo_path, "data")
+    local_data_dir = os.path.join(FEATURE_REPO_LOCAL_DIR, "data")
     local_input_dir = os.path.join(local_data_dir, "input")
     local_output_dir = os.path.join(local_data_dir, "output")
 
-    download_artifacts(REMOTE_INPUT_DIR, local_input_dir)
+    # download_artifacts(REMOTE_INPUT_DIR, local_input_dir)
 
-    os.makedirs(local_output_dir, exist_ok=True)
+    # os.makedirs(local_output_dir, exist_ok=True)
 
-    feast_apply(args.feature_repo_path)
+    feast_apply(FEATURE_REPO_LOCAL_DIR)
 
     upload_directory(REMOTE_OUTPUT_DIR, local_output_dir)
 
