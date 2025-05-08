@@ -7,7 +7,7 @@ spec:
   type: Python
   pythonVersion: "3"
   mode: cluster
-  image: "quay.io/hbelmiro/fraud-detection-e2e-demo-feature-engineering:dev-1746717816"
+  image: "quay.io/hbelmiro/fraud-detection-e2e-demo-feature-engineering:dev-1746718954"
   mainApplicationFile: local:///app/feast_apply.py
   sparkVersion: "3.5.5"
   restartPolicy:

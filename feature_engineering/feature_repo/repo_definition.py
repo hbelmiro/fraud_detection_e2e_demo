@@ -10,7 +10,7 @@ from feast import (
     FileSource,
     Project,
     PushSource,
-    RequestSource,
+    RequestSource, ValueType,
 )
 from feast.feature_logging import LoggingConfig
 from feast.infra.offline_stores.file_source import FileLoggingDestination
@@ -35,55 +35,29 @@ def get_spark():
 
 
 def calculate_point_in_time_features(label_dataset: DataFrame, transactions_df: DataFrame) -> DataFrame:
-    label_dataset = label_dataset.withColumn(
-        "created",
-        to_timestamp("created", "yyyy-MM-dd HH:mm:ss.SSSSSS")
-    )
-    transactions_df = transactions_df.withColumn(
-        "transaction_timestamp",
-        to_timestamp(col("date_of_transaction"))
-    )
+    label = (label_dataset
+             .withColumn("created_ts", to_timestamp("created", "yyyy-MM-dd HH:mm:ss.SSSSSS"))
+             .select("user_id", "created_ts"))
 
-    # Get all transactions before the created time
-    label_subset = label_dataset.select("user_id", "created")
-    transactions_before = label_subset.join(
-        transactions_df,
-        on="user_id",
-        how="inner"
-    )
-    transactions_before = transactions_before.filter(
-        col("transaction_timestamp") < col("created_x")
-    )
-    transactions_before = transactions_before.withColumn(
-        "days_between_transactions",
-        datediff(col("created_x"), col("transaction_timestamp"))
-    )
+    txn = (transactions_df
+           .withColumn("txn_ts", to_timestamp(col("date_of_transaction"), "yyyy-MM-dd HH:mm:ss.SSSSSS"))
+           .select("user_id", "txn_ts", "transaction_amount"))
 
-    features_df = (
-        transactions_before
-        .groupBy("user_id", "created")
-        .agg(
-            count("transaction_amount").alias("num_prev_transactions"),
-            avg("transaction_amount").alias("avg_prev_transaction_amount"),
-            spark_max("transaction_amount").alias("max_prev_transaction_amount"),
-            stddev("transaction_amount").alias("stdv_prev_transaction_amount"),
-            spark_min("days_between_transactions").alias("days_since_last_transaction"),
-            spark_max("days_between_transactions").alias("days_since_first_transaction")
-        )
-        .na.fill(0)
-    )
+    transactions_before = (label.join(txn, on="user_id", how="inner")
+                           .filter(col("txn_ts") < col("created_ts"))
+                           .withColumn("days_between_transactions", datediff(col("created_ts"), col("txn_ts"))))
 
-    final_df = label_dataset.join(
-        features_df,
-        on=[
-            label_dataset.user_id == features_df.user_id,
-            label_dataset.created == features_df.created_x
-        ],
-        how="left"
-    )
-    final_df = final_df.drop("created_x")
+    features_df = (transactions_before
+                   .groupBy("user_id", "created_ts").agg(
+        count("transaction_amount").alias("num_prev_transactions"),
+        avg("transaction_amount").alias("avg_prev_transaction_amount"),
+        spark_max("transaction_amount").alias("max_prev_transaction_amount"),
+        stddev("transaction_amount").alias("stdv_prev_transaction_amount"),
+        spark_min("days_between_transactions").alias("days_since_last_transaction"),
+        spark_max("days_between_transactions").alias("days_since_first_transaction"))
+                   .na.fill(0).withColumnRenamed("created_ts", "created"))
 
-    return final_df
+    return label_dataset.join(features_df, on=["user_id", "created"], how="left")
 
 
 def get_features() -> DataFrame:
@@ -168,7 +142,7 @@ entity_df.write.option("header", True).mode("overwrite").csv(entity_file_name)
 project = Project(name="fraud_detection_e2e_demo", description="A project for driver statistics")
 # Define an entity for the driver. You can think of an entity as a primary key used to
 # fetch features.
-transaction = Entity(name="transaction", join_keys=["user_id"])
+transaction = Entity(name="transaction", join_keys=["user_id"], value_type=ValueType.STRING)
 df = features
 df = (
     df.withColumn("created", to_timestamp(col("created"), "yyyy-MM-dd HH:mm:ss.SSSSSS"))
@@ -251,6 +225,7 @@ transactions_fs = FeatureService(
 transactions_push_source = PushSource(
     name="transactions_push_source",
     batch_source=transaction_source,
+    entity_columns=["user_id"]
 )
 # Defines a slightly modified version of the feature view from above, where the source
 # has been changed to the push source. This allows fresh features to be directly pushed
