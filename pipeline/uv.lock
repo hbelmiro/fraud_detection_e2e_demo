@@ -833,7 +833,7 @@ name = "importlib-metadata"
 version = "8.6.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "zipp", marker = "python_full_version != '3.12.*'" },
+    { name = "zipp", marker = "python_full_version < '3.12'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/33/08/c1395a292bb23fd03bdf572a1357c5a733d3eecbab877641ceacab23db6e/importlib_metadata-8.6.1.tar.gz", hash = "sha256:310b41d755445d74569f993ccfc22838295d9fe005425094fad953d7f15c8580", size = 55767 }
 wheels = [
@@ -1400,9 +1400,11 @@ dependencies = [
     { name = "feast" },
     { name = "kfp" },
     { name = "kserve" },
+    { name = "kubernetes" },
     { name = "minio" },
     { name = "model-registry" },
     { name = "pandas" },
+    { name = "pyspark" },
 ]
 
 [package.metadata]
@@ -1410,9 +1412,11 @@ requires-dist = [
     { name = "feast" },
     { name = "kfp", specifier = "==2.11.0" },
     { name = "kserve", specifier = "==0.15.0" },
+    { name = "kubernetes" },
     { name = "minio" },
     { name = "model-registry", specifier = "==0.2.16" },
     { name = "pandas" },
+    { name = "pyspark" },
 ]
 
 [[package]]
@@ -1535,6 +1539,15 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/6e/f5/2aa3a4acdc1e5940b59d421742356f133185667dd190b166dbcfcf5d7b43/psutil-5.9.8-cp37-abi3-win32.whl", hash = "sha256:bc56c2a1b0d15aa3eaa5a60c9f3f8e3e565303b465dbf57a1b730e7a2b9844e0", size = 251252 },
     { url = "https://files.pythonhosted.org/packages/93/52/3e39d26feae7df0aa0fd510b14012c3678b36ed068f7d78b8d8784d61f0e/psutil-5.9.8-cp37-abi3-win_amd64.whl", hash = "sha256:8db4c1b57507eef143a15a6884ca10f7c73876cdf5d51e713151c1236a0e68cf", size = 255090 },
     { url = "https://files.pythonhosted.org/packages/05/33/2d74d588408caedd065c2497bdb5ef83ce6082db01289a1e1147f6639802/psutil-5.9.8-cp38-abi3-macosx_11_0_arm64.whl", hash = "sha256:d16bbddf0693323b8c6123dd804100241da461e41d6e332fb0ba6058f630f8c8", size = 249898 },
+]
+
+[[package]]
+name = "py4j"
+version = "0.10.9.7"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/1e/f2/b34255180c72c36ff7097f7c2cdca02abcbd89f5eebf7c7c41262a9a0637/py4j-0.10.9.7.tar.gz", hash = "sha256:0b6e5315bb3ada5cf62ac651d107bb2ebc02def3dee9d9548e3baac644ea8dbb", size = 1508234 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/10/30/a58b32568f1623aaad7db22aa9eafc4c6c194b429ff35bdc55ca2726da47/py4j-0.10.9.7-py2.py3-none-any.whl", hash = "sha256:85defdfd2b2376eb3abf5ca6474b51ab7e0de341c75a02f46dc9b5976f5a5c1b", size = 200481 },
 ]
 
 [[package]]
@@ -1719,6 +1732,15 @@ sdist = { url = "https://files.pythonhosted.org/packages/e7/46/bd74733ff23167559
 wheels = [
     { url = "https://files.pythonhosted.org/packages/61/ad/689f02752eeec26aed679477e80e632ef1b682313be70793d798c1d5fc8f/PyJWT-2.10.1-py3-none-any.whl", hash = "sha256:dcdd193e30abefd5debf142f9adfcdd2b58004e644f25406ffaebd50bd98dacb", size = 22997 },
 ]
+
+[[package]]
+name = "pyspark"
+version = "3.5.5"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "py4j" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/5f/8f/b616ef710932ccdbabd8511e08890a677482ab2967b7cf276c09a02bc64c/pyspark-3.5.5.tar.gz", hash = "sha256:6effc9ce98edf231f4d683fd14f7270629bf8458c628d6a2620ded4bb34f3cb9", size = 317214975 }
 
 [[package]]
 name = "python-dateutil"

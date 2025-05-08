@@ -8,8 +8,99 @@ FEATURE_ENGINEERING_IMAGE = "quay.io/hbelmiro/fraud-detection-e2e-demo-feature-e
 TRAIN_IMAGE = "quay.io/hbelmiro/fraud-detection-e2e-demo-train:latest"
 
 
+@dsl.component(base_image=PIPELINE_IMAGE)
+def prepare_data(job_id: str) -> bool:
+    from kubernetes import client, config
+    from datetime import datetime, timedelta
+    import time
+    import logging
+
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger(__name__)
+
+    data_preparation_image = "quay.io/hbelmiro/fraud-detection-e2e-demo-data-preparation:latest"
+
+    config.load_incluster_config()
+
+    spark_app = {
+        "apiVersion": "sparkoperator.k8s.io/v1beta2",
+        "kind": "SparkApplication",
+        "metadata": {
+            "name": f"data-preparation-{job_id}",
+            "namespace": "kubeflow"
+        },
+        "spec": {
+            "type": "Python",
+            "pythonVersion": "3",
+            "mode": "cluster",
+            "image": data_preparation_image,
+            "imagePullPolicy": "Always",
+            "mainApplicationFile": "local:///app/main.py",
+            "sparkVersion": "3.5.5",
+            "restartPolicy": {
+                "type": "Never"
+            },
+            "driver": {
+                "serviceAccount": "spark",
+                "cores": 1,
+                "coreLimit": "1200m",
+                "memory": "1g"
+            },
+            "executor": {
+                "cores": 1,
+                "instances": 1,
+                "memory": "1g"
+            }
+        }
+    }
+
+    k8s_client = client.CustomObjectsApi()
+    k8s_client.create_namespaced_custom_object(
+        group="sparkoperator.k8s.io",
+        version="v1beta2",
+        namespace=spark_app["metadata"]["namespace"],
+        plural="sparkapplications",
+        body=spark_app
+    )
+
+    job_name = spark_app["metadata"]["name"]
+    namespace = spark_app["metadata"]["namespace"]
+
+    timeout_minutes = 5
+    start_time = datetime.now()
+    timeout_time = start_time + timedelta(minutes=timeout_minutes)
+
+    while True:
+        if datetime.now() > timeout_time:
+            logger.error(f"Timeout reached after {timeout_minutes} minutes waiting for Spark job completion")
+            return False
+
+        status = k8s_client.get_namespaced_custom_object_status(
+            group="sparkoperator.k8s.io",
+            version="v1beta2",
+            namespace=namespace,
+            plural="sparkapplications",
+            name=job_name
+        )
+
+        application_state = status.get("status", {}).get("applicationState", {}).get("state", "")
+        logger.info(f"Current application state: {application_state}")
+
+        if application_state == "COMPLETED":
+            logger.info("Spark job completed successfully")
+            return True
+        elif application_state in ["FAILED", "SUBMISSION_FAILED", "INVALIDATING"]:
+            logger.error(f"Spark job failed with state: {application_state}")
+            return False
+
+        time.sleep(10)
+
+
 @dsl.container_component
-def create_features(features_ok: dsl.OutputPath(str)):
+def create_features(data_preparation_ok: bool, features_ok: dsl.OutputPath(str)):
+    if not data_preparation_ok:
+        raise ValueError("data preparation not ok")
+
     return dsl.ContainerSpec(image=FEATURE_ENGINEERING_IMAGE,
                              command=["sh", "-c", "python /app/feast_apply.py --feature-repo-path=/app/feature_repo"],
                              args=[features_ok])
@@ -22,44 +113,8 @@ def retrieve_features(features_ok: str, output_df: Output[Dataset]):
     import pandas as pd
     import os
     from minio import Minio
-
-    logging.basicConfig(
-        level=logging.INFO,
-    )
-
-    minio_endpoint = os.getenv("MINIO_ENDPOINT")
-    minio_access_key = os.getenv("MINIO_ACCESS_KEY")
-    minio_secret_key = os.getenv("MINIO_SECRET_KEY")
-    minio_bucket = os.getenv("MINIO_BUCKET")
-    remote_feature_repo_dir = os.getenv("REMOTE_FEATURE_REPO_DIR")
-
-    if not all([minio_endpoint, minio_access_key, minio_secret_key, minio_bucket, remote_feature_repo_dir]):
-        raise ValueError("Missing required environment variables!")
-
-    if features_ok != "true":
-        raise ValueError("features not ok")
-
-    def fetch_historical_features_entity_df(features_repo: str):
-        store = FeatureStore(repo_path=features_repo)
-        entity_df = pd.read_csv(os.path.join(features_repo, "data", "output", "entity.csv"))
-        entity_df["created_timestamp"] = pd.to_datetime("now", utc=True)
-        entity_df["event_timestamp"] = pd.to_datetime("now", utc=True)
-
-        features = store.get_historical_features(
-            entity_df=entity_df,
-            features=[
-                "transactions:distance_from_home",
-                "transactions:distance_from_last_transaction",
-                "transactions:ratio_to_median_purchase_price",
-                "transactions:fraud",
-                "transactions:used_chip",
-                "transactions:used_pin_number",
-                "transactions:online_order",
-                "transactions:set"
-            ],
-        ).to_df()
-
-        return features
+    import glob
+    from pyspark.sql import SparkSession
 
     def download_artifacts(directory_path, dest):
         logging.info("directory_path: {}".format(directory_path))
@@ -85,11 +140,73 @@ def retrieve_features(features_ok: str, output_df: Output[Dataset]):
 
         print("Download complete.")
 
-    local_dest = "feature_repo"
+    def fetch_historical_features_entity_df() -> pd.DataFrame:
+        features_repo = "/app/feature_repo/"
+        store = FeatureStore(repo_path=features_repo)
+
+        directory_path = os.path.join(features_repo, "data", "output", "entity.csv")
+        csv_files = glob.glob(os.path.join(directory_path, 'part-*.csv'))
+        df_list = [pd.read_csv(file) for file in csv_files]
+
+        entity_df = pd.concat(df_list, ignore_index=True)
+        entity_df["created_timestamp"] = pd.to_datetime("now", utc=True)
+        entity_df["event_timestamp"] = pd.to_datetime("now", utc=True)
+
+        _features = store.get_historical_features(
+            entity_df=entity_df,
+            features=[
+                "transactions:distance_from_home",
+                "transactions:distance_from_last_transaction",
+                "transactions:ratio_to_median_purchase_price",
+                "transactions:fraud",
+                "transactions:used_chip",
+                "transactions:used_pin_number",
+                "transactions:online_order",
+                "transactions:set"
+            ],
+        ).to_df()
+
+        return _features
+
+    logging.basicConfig(
+        level=logging.INFO,
+    )
+
+    logging.info("output_df.path: {}".format(output_df.path))
+
+    minio_endpoint = "http://minio-service.kubeflow.svc.cluster.local:9000"
+    minio_access_key = os.getenv("MINIO_ACCESS_KEY")
+    minio_secret_key = os.getenv("MINIO_SECRET_KEY")
+    minio_bucket = os.getenv("MINIO_BUCKET")
+    remote_feature_repo_dir = "artifacts/feature_repo"
+
+    (
+        SparkSession.builder
+        .appName("FeatureEngineeringSpark")
+        .config("spark.jars.ivy", "/app/.ivy2")
+        .config("spark.driver.memory", "1g")
+        .config("spark.executor.memory", "1g")
+        .config("spark.jars.packages", "org.apache.hadoop:hadoop-aws:3.3.1,com.amazonaws:aws-java-sdk-bundle:1.12.458")
+        .config("spark.hadoop.fs.s3a.endpoint", minio_endpoint)
+        .config("spark.hadoop.fs.s3a.access.key", "minio")
+        .config("spark.hadoop.fs.s3a.secret.key", "minio123")
+        .config("spark.hadoop.fs.s3a.path.style.access", "true")
+        .config("spark.hadoop.fs.s3a.connection.ssl.enabled", "false")
+        .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")
+        .getOrCreate()
+    )
+
+    if not all([minio_endpoint, minio_access_key, minio_secret_key, minio_bucket, remote_feature_repo_dir]):
+        raise ValueError("Missing required environment variables!")
+
+    if features_ok != "true":
+        raise ValueError(f"features not ok [status: {features_ok}]")
+
+    local_dest = "/app/feature_repo"
 
     download_artifacts(remote_feature_repo_dir, local_dest)
 
-    fetch_historical_features_entity_df(local_dest).to_csv(output_df.path, index=False)
+    fetch_historical_features_entity_df().to_csv(output_df.path, index=False)
 
 
 @dsl.container_component
@@ -190,10 +307,15 @@ def serve(model_name: str, model_version_name: str):
 
 @dsl.pipeline
 def fraud_detection_e2e_pipeline():
-    create_features_task = create_features()
+    import kfp
+
+    prepare_data_task = prepare_data(job_id=kfp.dsl.PIPELINE_JOB_ID_PLACEHOLDER)
+    prepare_data_task.set_caching_options(False)
+
+    create_features_task = create_features(data_preparation_ok=prepare_data_task.output)
     create_features_task.set_caching_options(False)
 
-    retrieve_features_task = retrieve_features(features_ok=create_features_task.outputs['features_ok'])
+    retrieve_features_task = retrieve_features(features_ok=create_features_task.output)
     retrieve_features_task.set_caching_options(False)
 
     train_model_task = train_model(dataset=retrieve_features_task.outputs['output_df'])

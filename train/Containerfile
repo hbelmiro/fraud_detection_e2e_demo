@@ -1,14 +1,9 @@
-FROM spark:3.5.4-scala2.12-java17-python3-ubuntu
+FROM spark:3.5.5-scala2.12-java17-python3-ubuntu
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     APP_HOME=/app \
-    PATH="/opt/venv/bin:$PATH" \
-    MINIO_ENDPOINT="http://minio-service:9000" \
-    MINIO_ACCESS_KEY="minio" \
-    MINIO_SECRET_KEY="minio123" \
-    MINIO_BUCKET="mlpipeline" \
-    FEATURE_REPO_REMOTE_DIR="artifacts/feature_repo"
+    PATH="/opt/venv/bin:$PATH"
 
 USER root
 

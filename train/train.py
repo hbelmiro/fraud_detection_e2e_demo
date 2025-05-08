@@ -23,14 +23,14 @@ logging.basicConfig(
 
 SPARK = SparkSession.builder.appName("FraudDetection").getOrCreate()
 
-MINIO_ENDPOINT = os.getenv("MINIO_ENDPOINT")
-MINIO_ACCESS_KEY = os.getenv("MINIO_ACCESS_KEY")
-MINIO_SECRET_KEY = os.getenv("MINIO_SECRET_KEY")
-MINIO_BUCKET = os.getenv("MINIO_BUCKET")
+MINIO_ENDPOINT = "http://minio-service.kubeflow.svc.cluster.local:9000"
+MINIO_ACCESS_KEY = "minio"
+MINIO_SECRET_KEY = "minio123"
+MINIO_BUCKET = "mlpipeline"
 
-REMOTE_FEATURE_REPO_DIR = os.getenv("FEATURE_REPO_REMOTE_DIR")
-REMOTE_DATA_DIR = os.path.join(REMOTE_FEATURE_REPO_DIR, "data")
-REMOTE_OUTPUT_DIR = os.path.join(REMOTE_DATA_DIR, "output")
+REMOTE_FEATURE_REPO_DIR = "artifacts/feature_repo/"
+REMOTE_DATA_DIR = REMOTE_FEATURE_REPO_DIR + "data/"
+REMOTE_OUTPUT_DIR = REMOTE_DATA_DIR + "output/"
 
 
 def bool_to_float(df, column_names: list):
@@ -164,14 +164,14 @@ def main():
     # Set the input (X) and output (Y) data.
     # The only output data is whether it's fraudulent. All other fields are inputs to the model.
     feature_indexes: list[int] = [
-        5,  # distance_from_last_transaction
-        6,  # ratio_to_median_purchase_price
-        8,  # used_chip
-        9,  # used_pin_number
-        10,  # online_order
+        4,  # distance_from_last_transaction
+        5,  # ratio_to_median_purchase_price
+        7,  # used_chip
+        8,  # used_pin_number
+        9,  # online_order
     ]
     label_indexes = [
-        7  # fraud
+        6  # fraud
     ]
     # Split the data into train, validation, and test datasets
     train_features = features.filter(features["set"] == "train")
