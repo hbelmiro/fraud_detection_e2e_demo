@@ -9,7 +9,6 @@ from feast import (
     Field,
     FileSource,
     Project,
-    PushSource,
     RequestSource, ValueType,
 )
 from feast.feature_logging import LoggingConfig
@@ -220,21 +219,4 @@ transactions_fs = FeatureService(
     logging_config=LoggingConfig(
         destination=FileLoggingDestination(path="data")
     ),
-)
-# Defines a way to push data (to be available offline, online or both) into Feast.
-transactions_push_source = PushSource(
-    name="transactions_push_source",
-    batch_source=transaction_source,
-    entity_columns=["user_id"]
-)
-# Defines a slightly modified version of the feature view from above, where the source
-# has been changed to the push source. This allows fresh features to be directly pushed
-# to the online store for this feature view.
-transactions_fresh_fv = FeatureView(
-    name="transactions_fresh",
-    entities=[transaction],
-    ttl=timedelta(days=1),
-    online=True,
-    source=transactions_push_source,  # Changed from above
-    tags={"team": "driver_performance"},
 )
