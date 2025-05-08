@@ -18,29 +18,16 @@ REMOTE_OUTPUT_DIR = os.path.join(REMOTE_DATA_DIR, "output")
 
 def feast_apply(feature_repo_path: str):
     print("Will run feast apply in {}".format(feature_repo_path))
-    try:
-        result = subprocess.run(
-            ["feast", "apply"],
-            cwd=feature_repo_path,
-            check=True,
-            capture_output=True,
-            text=True
-        )
-        print("STDOUT:", result.stdout)
-        print("STDERR:", result.stderr)
-        print("Feast applied successfully!")
-
-        with open("/tmp/kfp/outputs/features_ok", "w") as f:
-            f.write("true")
-    except subprocess.CalledProcessError as e:
-        print(f"Error executing 'feast apply': {e}")
-        print("STDOUT:", e.stdout)
-        print("STDERR:", e.stderr)
-
-        with open("/tmp/kfp/outputs/features_ok", "w") as f:
-            f.write("false")
-
-        sys.exit(e.returncode)
+    result = subprocess.run(
+        ["feast", "apply"],
+        cwd=feature_repo_path,
+        check=True,
+        capture_output=True,
+        text=True
+    )
+    print("STDOUT:", result.stdout)
+    print("STDERR:", result.stderr)
+    print("Feast applied successfully!")
 
 
 def upload_directory(remote_path, local_dir):
