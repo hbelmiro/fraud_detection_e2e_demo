@@ -7,7 +7,7 @@ spec:
   type: Python
   pythonVersion: "3"
   mode: cluster
-  image: "quay.io/hbelmiro/fraud-detection-e2e-demo-feature-engineering:dev-1746731855"
+  image: "quay.io/hbelmiro/fraud-detection-e2e-demo-feature-engineering:dev-1746737282"
   mainApplicationFile: local:///app/feast_apply.py
   sparkVersion: "3.5.5"
   restartPolicy:
@@ -16,15 +16,8 @@ spec:
     serviceAccount: spark
     cores: 1
     coreLimit: "1200m"
-    memory: "512m"
+    memory: "1g"
   executor:
     cores: 1
     instances: 1
-    memory: "512m"
-  sparkConf:
-    "spark.hadoop.fs.s3a.endpoint": "http://minio-service.kubeflow.svc.cluster.local:9000"
-    "spark.hadoop.fs.s3a.access.key": "minio"
-    "spark.hadoop.fs.s3a.secret.key": "minio123"
-    "spark.hadoop.fs.s3a.path.style.access": "true"
-    "spark.hadoop.fs.s3a.connection.ssl.enabled": "false"
-    "spark.hadoop.fs.s3a.impl": "org.apache.hadoop.fs.s3a.S3AFileSystem"
+    memory: "1g"

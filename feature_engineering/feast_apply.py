@@ -18,16 +18,23 @@ REMOTE_OUTPUT_DIR = os.path.join(REMOTE_DATA_DIR, "output")
 
 def feast_apply(feature_repo_path: str):
     print("Will run feast apply in {}".format(feature_repo_path))
-    result = subprocess.run(
-        ["feast", "apply"],
-        cwd=feature_repo_path,
-        check=True,
-        capture_output=True,
-        text=True
-    )
-    print("STDOUT:", result.stdout)
-    print("STDERR:", result.stderr)
-    print("Feast applied successfully!")
+    try:
+        result = subprocess.run(
+            ["feast", "apply"],
+            cwd=feature_repo_path,
+            check=True,
+            capture_output=True,
+            text=True
+        )
+        print("STDOUT:", result.stdout)
+        print("STDERR:", result.stderr)
+        print("Feast applied successfully!")
+    except subprocess.CalledProcessError as e:
+        print(f"Error executing 'feast apply': {e}")
+        print("STDOUT:", e.stdout)
+        print("STDERR:", e.stderr)
+
+        sys.exit(e.returncode)
 
 
 def upload_directory(remote_path, local_dir):
@@ -83,17 +90,7 @@ def main():
     if not all([MINIO_ENDPOINT, MINIO_ACCESS_KEY, MINIO_SECRET_KEY, MINIO_BUCKET, FEATURE_REPO_LOCAL_DIR]):
         raise ValueError("Missing required environment variables!")
 
-    local_data_dir = os.path.join(FEATURE_REPO_LOCAL_DIR, "data")
-    local_input_dir = os.path.join(local_data_dir, "input")
-    local_output_dir = os.path.join(local_data_dir, "output")
-
-    # download_artifacts(REMOTE_INPUT_DIR, local_input_dir)
-
-    # os.makedirs(local_output_dir, exist_ok=True)
-
     feast_apply(FEATURE_REPO_LOCAL_DIR)
-
-    upload_directory(REMOTE_OUTPUT_DIR, local_output_dir)
 
 
 if __name__ == '__main__':
