@@ -3,9 +3,9 @@ from typing import NamedTuple
 from kfp import dsl
 from kfp.dsl import Input, Dataset, Output, Model
 
-PIPELINE_IMAGE = "quay.io/hbelmiro/fraud-detection-e2e-demo-pipeline:dev"
-FEATURE_ENGINEERING_IMAGE = "quay.io/hbelmiro/fraud-detection-e2e-demo-feature-engineering:dev"
-TRAIN_IMAGE = "quay.io/hbelmiro/fraud-detection-e2e-demo-train:dev"
+PIPELINE_IMAGE = "quay.io/hbelmiro/fraud-detection-e2e-demo-pipeline:latest"
+FEATURE_ENGINEERING_IMAGE = "quay.io/hbelmiro/fraud-detection-e2e-demo-feature-engineering:latest"
+TRAIN_IMAGE = "quay.io/hbelmiro/fraud-detection-e2e-demo-train:latest"
 
 
 @dsl.container_component
@@ -176,7 +176,7 @@ def serve(model_name: str, model_version_name: str):
                 containers=[
                     V1Container(
                         name="inference-container",
-                        image="quay.io/hbelmiro/fraud-detection-e2e-demo-rest-predictor:dev",
+                        image="quay.io/hbelmiro/fraud-detection-e2e-demo-rest-predictor:latest",
                         command=["python", "predictor.py"],
                         args=["--model-name", model_name, "--model-version", model_version_name]
                     )

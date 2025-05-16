@@ -65,7 +65,7 @@ deploymentSpec:
         - sh
         - -c
         - python /app/feast_apply.py --feature-repo-path=/app/feature_repo
-        image: quay.io/hbelmiro/fraud-detection-e2e-demo-feature-engineering:dev
+        image: quay.io/hbelmiro/fraud-detection-e2e-demo-feature-engineering:latest
     exec-register-model:
       container:
         args:
@@ -108,7 +108,7 @@ deploymentSpec:
           \            \"str_key\": \"str_value\",\n        }\n    )\n\n    outputs\
           \ = NamedTuple('outputs', model_name=str, model_version=str)\n    return\
           \ outputs(model_name, model_version)\n\n"
-        image: quay.io/hbelmiro/fraud-detection-e2e-demo-pipeline:dev
+        image: quay.io/hbelmiro/fraud-detection-e2e-demo-pipeline:latest
     exec-retrieve-features:
       container:
         args:
@@ -173,7 +173,7 @@ deploymentSpec:
           \ = \"feature_repo\"\n\n    download_artifacts(remote_feature_repo_dir,\
           \ local_dest)\n\n    fetch_historical_features_entity_df(local_dest).to_csv(output_df.path,\
           \ index=False)\n\n"
-        image: quay.io/hbelmiro/fraud-detection-e2e-demo-pipeline:dev
+        image: quay.io/hbelmiro/fraud-detection-e2e-demo-pipeline:latest
     exec-serve:
       container:
         args:
@@ -219,13 +219,13 @@ deploymentSpec:
           \            predictor=kserve.V1beta1PredictorSpec(\n                service_account_name=\"\
           kserve-sa\",\n                containers=[\n                    V1Container(\n\
           \                        name=\"inference-container\",\n               \
-          \         image=\"quay.io/hbelmiro/fraud-detection-e2e-demo-rest-predictor:dev\"\
+          \         image=\"quay.io/hbelmiro/fraud-detection-e2e-demo-rest-predictor:latest\"\
           ,\n                        command=[\"python\", \"predictor.py\"],\n   \
           \                     args=[\"--model-name\", model_name, \"--model-version\"\
           , model_version_name]\n                    )\n                ]\n      \
           \      )\n        ),\n    )\n    ks_client = kserve.KServeClient()\n   \
           \ ks_client.create(inference_service)\n\n"
-        image: quay.io/hbelmiro/fraud-detection-e2e-demo-pipeline:dev
+        image: quay.io/hbelmiro/fraud-detection-e2e-demo-pipeline:latest
     exec-train-model:
       container:
         args:
@@ -236,7 +236,7 @@ deploymentSpec:
         command:
         - python
         - /app/train.py
-        image: quay.io/hbelmiro/fraud-detection-e2e-demo-train:dev
+        image: quay.io/hbelmiro/fraud-detection-e2e-demo-train:latest
 pipelineInfo:
   name: fraud-detection-e2e-pipeline
 root:
