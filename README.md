@@ -1,5 +1,15 @@
 This is a work in progress.
 
+## Create a Kind cluster
+
+```shell
+kind create cluster -n fraud-detection-e2e-demo --image kindest/node:v1.31.6
+```
+
+## Deploy Kubeflow Pipelines
+
+https://www.kubeflow.org/docs/components/pipelines/operator-guides/installation/
+
 ## MinIO
 
 ### Port forward
@@ -52,6 +62,8 @@ mlpipeline
 ```shell
 kfp pipeline upload -p fraud-detection-e2e fraud-detection-e2e.yaml
 ```
+
+## Run the pipeline
 
 ## Port-forward the inference pod
 

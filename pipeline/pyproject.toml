@@ -11,4 +11,6 @@ dependencies = [
     "minio",
     "feast",
     "pandas",
+    "kubernetes",
+    "pyspark"
 ]

@@ -1,6 +1,9 @@
 resources:
-  - role.yaml
-  - role-binding.yaml
+  - kserve-role.yaml
+  - kserve-role-binding.yaml
   - serving-runtime.yaml
   - kserve-sa.yaml
   - kserve-minio-secret.yaml
+  - spark-sa.yaml
+  - spark-role.yaml
+  - spark-role-binding.yaml

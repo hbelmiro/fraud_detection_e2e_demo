@@ -2,19 +2,18 @@ import argparse
 import os
 import subprocess
 import sys
-from typing import TextIO
 
 from minio import Minio, S3Error
 
-MINIO_ENDPOINT = os.getenv("MINIO_ENDPOINT")
-MINIO_ACCESS_KEY = os.getenv("MINIO_ACCESS_KEY")
-MINIO_SECRET_KEY = os.getenv("MINIO_SECRET_KEY")
-MINIO_BUCKET = os.getenv("MINIO_BUCKET")
+MINIO_ENDPOINT = "http://minio-service.kubeflow.svc.cluster.local:9000"
+MINIO_ACCESS_KEY = "minio"
+MINIO_SECRET_KEY = "minio123"
+MINIO_BUCKET = "mlpipeline"
 
-REMOTE_FEATURE_REPO_DIR = os.getenv("FEATURE_REPO_REMOTE_DIR")
-REMOTE_DATA_DIR = os.path.join(REMOTE_FEATURE_REPO_DIR, "data")
-REMOTE_INPUT_DIR = os.path.join(REMOTE_DATA_DIR, "input")
-REMOTE_OUTPUT_DIR = os.path.join(REMOTE_DATA_DIR, "output")
+REMOTE_FEATURE_REPO_DIR = "artifacts/feature_repo/"
+REMOTE_DATA_DIR = REMOTE_FEATURE_REPO_DIR + "data/"
+REMOTE_INPUT_DIR = REMOTE_DATA_DIR + "input/"
+REMOTE_OUTPUT_DIR = REMOTE_DATA_DIR + "output/"
 
 
 def feast_apply(feature_repo_path: str):
@@ -95,14 +94,12 @@ def main():
     parser.add_argument("--feature-repo-path", required=True, help="Path to the feature repository")
     args = parser.parse_args()
 
-    if not all([MINIO_ENDPOINT, MINIO_ACCESS_KEY, MINIO_SECRET_KEY, MINIO_BUCKET]):
-        raise ValueError("Missing required environment variables!")
-
-    local_data_dir = os.path.join(args.feature_repo_path, "data")
-    local_input_dir = os.path.join(local_data_dir, "input")
-    local_output_dir = os.path.join(local_data_dir, "output")
+    local_data_dir = "/app/feature_repo/data/"
+    local_input_dir = local_data_dir + "input/"
+    local_output_dir = local_data_dir + "output/"
 
     download_artifacts(REMOTE_INPUT_DIR, local_input_dir)
+    download_artifacts(REMOTE_OUTPUT_DIR, local_output_dir)
 
     os.makedirs(local_output_dir, exist_ok=True)
 

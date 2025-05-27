@@ -3,10 +3,24 @@
 components:
   comp-create-features:
     executorLabel: exec-create-features
+    inputDefinitions:
+      parameters:
+        data_preparation_ok:
+          parameterType: BOOLEAN
     outputDefinitions:
       parameters:
         features_ok:
           parameterType: STRING
+  comp-prepare-data:
+    executorLabel: exec-prepare-data
+    inputDefinitions:
+      parameters:
+        job_id:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: BOOLEAN
   comp-register-model:
     executorLabel: exec-register-model
     inputDefinitions:
@@ -66,6 +80,72 @@ deploymentSpec:
         - -c
         - python /app/feast_apply.py --feature-repo-path=/app/feature_repo
         image: quay.io/hbelmiro/fraud-detection-e2e-demo-feature-engineering:latest
+    exec-prepare-data:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - prepare_data
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.11.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef prepare_data(job_id: str) -> bool:\n    from kubernetes import\
+          \ client, config\n    from datetime import datetime, timedelta\n    import\
+          \ time\n    import logging\n\n    logging.basicConfig(level=logging.INFO)\n\
+          \    logger = logging.getLogger(__name__)\n\n    data_preparation_image\
+          \ = \"quay.io/hbelmiro/fraud-detection-e2e-demo-data-preparation:latest\"\
+          \n\n    config.load_incluster_config()\n\n    spark_app = {\n        \"\
+          apiVersion\": \"sparkoperator.k8s.io/v1beta2\",\n        \"kind\": \"SparkApplication\"\
+          ,\n        \"metadata\": {\n            \"name\": f\"data-preparation-{job_id}\"\
+          ,\n            \"namespace\": \"kubeflow\"\n        },\n        \"spec\"\
+          : {\n            \"type\": \"Python\",\n            \"pythonVersion\": \"\
+          3\",\n            \"mode\": \"cluster\",\n            \"image\": data_preparation_image,\n\
+          \            \"imagePullPolicy\": \"Always\",\n            \"mainApplicationFile\"\
+          : \"local:///app/main.py\",\n            \"sparkVersion\": \"3.5.5\",\n\
+          \            \"restartPolicy\": {\n                \"type\": \"Never\"\n\
+          \            },\n            \"driver\": {\n                \"serviceAccount\"\
+          : \"spark\",\n                \"cores\": 1,\n                \"coreLimit\"\
+          : \"1200m\",\n                \"memory\": \"1g\"\n            },\n     \
+          \       \"executor\": {\n                \"cores\": 1,\n               \
+          \ \"instances\": 1,\n                \"memory\": \"1g\"\n            }\n\
+          \        }\n    }\n\n    k8s_client = client.CustomObjectsApi()\n    k8s_client.create_namespaced_custom_object(\n\
+          \        group=\"sparkoperator.k8s.io\",\n        version=\"v1beta2\",\n\
+          \        namespace=spark_app[\"metadata\"][\"namespace\"],\n        plural=\"\
+          sparkapplications\",\n        body=spark_app\n    )\n\n    job_name = spark_app[\"\
+          metadata\"][\"name\"]\n    namespace = spark_app[\"metadata\"][\"namespace\"\
+          ]\n\n    timeout_minutes = 5\n    start_time = datetime.now()\n    timeout_time\
+          \ = start_time + timedelta(minutes=timeout_minutes)\n\n    while True:\n\
+          \        if datetime.now() > timeout_time:\n            logger.error(f\"\
+          Timeout reached after {timeout_minutes} minutes waiting for Spark job completion\"\
+          )\n            return False\n\n        status = k8s_client.get_namespaced_custom_object_status(\n\
+          \            group=\"sparkoperator.k8s.io\",\n            version=\"v1beta2\"\
+          ,\n            namespace=namespace,\n            plural=\"sparkapplications\"\
+          ,\n            name=job_name\n        )\n\n        application_state = status.get(\"\
+          status\", {}).get(\"applicationState\", {}).get(\"state\", \"\")\n     \
+          \   logger.info(f\"Current application state: {application_state}\")\n\n\
+          \        if application_state == \"COMPLETED\":\n            logger.info(\"\
+          Spark job completed successfully\")\n            return True\n        elif\
+          \ application_state in [\"FAILED\", \"SUBMISSION_FAILED\", \"INVALIDATING\"\
+          ]:\n            logger.error(f\"Spark job failed with state: {application_state}\"\
+          )\n            return False\n\n        time.sleep(10)\n\n"
+        image: quay.io/hbelmiro/fraud-detection-e2e-demo-pipeline:latest
     exec-register-model:
       container:
         args:
@@ -137,27 +217,8 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef retrieve_features(features_ok: str, output_df: Output[Dataset]):\n\
           \    import logging\n    from feast import FeatureStore\n    import pandas\
-          \ as pd\n    import os\n    from minio import Minio\n\n    logging.basicConfig(\n\
-          \        level=logging.INFO,\n    )\n\n    minio_endpoint = os.getenv(\"\
-          MINIO_ENDPOINT\")\n    minio_access_key = os.getenv(\"MINIO_ACCESS_KEY\"\
-          )\n    minio_secret_key = os.getenv(\"MINIO_SECRET_KEY\")\n    minio_bucket\
-          \ = os.getenv(\"MINIO_BUCKET\")\n    remote_feature_repo_dir = os.getenv(\"\
-          REMOTE_FEATURE_REPO_DIR\")\n\n    if not all([minio_endpoint, minio_access_key,\
-          \ minio_secret_key, minio_bucket, remote_feature_repo_dir]):\n        raise\
-          \ ValueError(\"Missing required environment variables!\")\n\n    if features_ok\
-          \ != \"true\":\n        raise ValueError(\"features not ok\")\n\n    def\
-          \ fetch_historical_features_entity_df(features_repo: str):\n        store\
-          \ = FeatureStore(repo_path=features_repo)\n        entity_df = pd.read_csv(os.path.join(features_repo,\
-          \ \"data\", \"output\", \"entity.csv\"))\n        entity_df[\"created_timestamp\"\
-          ] = pd.to_datetime(\"now\", utc=True)\n        entity_df[\"event_timestamp\"\
-          ] = pd.to_datetime(\"now\", utc=True)\n\n        features = store.get_historical_features(\n\
-          \            entity_df=entity_df,\n            features=[\n            \
-          \    \"transactions:distance_from_home\",\n                \"transactions:distance_from_last_transaction\"\
-          ,\n                \"transactions:ratio_to_median_purchase_price\",\n  \
-          \              \"transactions:fraud\",\n                \"transactions:used_chip\"\
-          ,\n                \"transactions:used_pin_number\",\n                \"\
-          transactions:online_order\",\n                \"transactions:set\"\n   \
-          \         ],\n        ).to_df()\n\n        return features\n\n    def download_artifacts(directory_path,\
+          \ as pd\n    import os\n    from minio import Minio\n    import glob\n \
+          \   from pyspark.sql import SparkSession\n\n    def download_artifacts(directory_path,\
           \ dest):\n        logging.info(\"directory_path: {}\".format(directory_path))\n\
           \        logging.info(\"dest: {}\".format(dest))\n\n        client = Minio(\n\
           \            minio_endpoint.replace(\"http://\", \"\").replace(\"https://\"\
@@ -169,9 +230,43 @@ deploymentSpec:
           \ \"\").lstrip(\"/\"))\n            os.makedirs(os.path.dirname(file_path),\
           \ exist_ok=True)\n\n            print(f\"Downloading: {obj.object_name}\
           \ -> {file_path}\")\n            client.fget_object(minio_bucket, obj.object_name,\
-          \ file_path)\n\n        print(\"Download complete.\")\n\n    local_dest\
-          \ = \"feature_repo\"\n\n    download_artifacts(remote_feature_repo_dir,\
-          \ local_dest)\n\n    fetch_historical_features_entity_df(local_dest).to_csv(output_df.path,\
+          \ file_path)\n\n        print(\"Download complete.\")\n\n    def fetch_historical_features_entity_df()\
+          \ -> pd.DataFrame:\n        features_repo = \"/app/feature_repo/\"\n   \
+          \     store = FeatureStore(repo_path=features_repo)\n\n        directory_path\
+          \ = os.path.join(features_repo, \"data\", \"output\", \"entity.csv\")\n\
+          \        csv_files = glob.glob(os.path.join(directory_path, 'part-*.csv'))\n\
+          \        df_list = [pd.read_csv(file) for file in csv_files]\n\n       \
+          \ entity_df = pd.concat(df_list, ignore_index=True)\n        entity_df[\"\
+          created_timestamp\"] = pd.to_datetime(\"now\", utc=True)\n        entity_df[\"\
+          event_timestamp\"] = pd.to_datetime(\"now\", utc=True)\n\n        _features\
+          \ = store.get_historical_features(\n            entity_df=entity_df,\n \
+          \           features=[\n                \"transactions:distance_from_home\"\
+          ,\n                \"transactions:distance_from_last_transaction\",\n  \
+          \              \"transactions:ratio_to_median_purchase_price\",\n      \
+          \          \"transactions:fraud\",\n                \"transactions:used_chip\"\
+          ,\n                \"transactions:used_pin_number\",\n                \"\
+          transactions:online_order\",\n                \"transactions:set\"\n   \
+          \         ],\n        ).to_df()\n\n        return _features\n\n    logging.basicConfig(\n\
+          \        level=logging.INFO,\n    )\n\n    logging.info(\"output_df.path:\
+          \ {}\".format(output_df.path))\n\n    minio_endpoint = \"http://minio-service.kubeflow.svc.cluster.local:9000\"\
+          \n    minio_access_key = os.getenv(\"MINIO_ACCESS_KEY\")\n    minio_secret_key\
+          \ = os.getenv(\"MINIO_SECRET_KEY\")\n    minio_bucket = os.getenv(\"MINIO_BUCKET\"\
+          )\n    remote_feature_repo_dir = \"artifacts/feature_repo\"\n\n    (\n \
+          \       SparkSession.builder\n        .appName(\"FeatureEngineeringSpark\"\
+          )\n        .config(\"spark.jars.ivy\", \"/app/.ivy2\")\n        .config(\"\
+          spark.driver.memory\", \"1g\")\n        .config(\"spark.executor.memory\"\
+          , \"1g\")\n        .config(\"spark.jars.packages\", \"org.apache.hadoop:hadoop-aws:3.3.1,com.amazonaws:aws-java-sdk-bundle:1.12.458\"\
+          )\n        .config(\"spark.hadoop.fs.s3a.endpoint\", minio_endpoint)\n \
+          \       .config(\"spark.hadoop.fs.s3a.access.key\", \"minio\")\n       \
+          \ .config(\"spark.hadoop.fs.s3a.secret.key\", \"minio123\")\n        .config(\"\
+          spark.hadoop.fs.s3a.path.style.access\", \"true\")\n        .config(\"spark.hadoop.fs.s3a.connection.ssl.enabled\"\
+          , \"false\")\n        .config(\"spark.hadoop.fs.s3a.impl\", \"org.apache.hadoop.fs.s3a.S3AFileSystem\"\
+          )\n        .getOrCreate()\n    )\n\n    if not all([minio_endpoint, minio_access_key,\
+          \ minio_secret_key, minio_bucket, remote_feature_repo_dir]):\n        raise\
+          \ ValueError(\"Missing required environment variables!\")\n\n    if features_ok\
+          \ != \"true\":\n        raise ValueError(f\"features not ok [status: {features_ok}]\"\
+          )\n\n    local_dest = \"/app/feature_repo\"\n\n    download_artifacts(remote_feature_repo_dir,\
+          \ local_dest)\n\n    fetch_historical_features_entity_df().to_csv(output_df.path,\
           \ index=False)\n\n"
         image: quay.io/hbelmiro/fraud-detection-e2e-demo-pipeline:latest
     exec-serve:
@@ -246,8 +341,27 @@ root:
         cachingOptions: {}
         componentRef:
           name: comp-create-features
+        dependentTasks:
+        - prepare-data
+        inputs:
+          parameters:
+            data_preparation_ok:
+              taskOutputParameter:
+                outputParameterKey: Output
+                producerTask: prepare-data
         taskInfo:
           name: create-features
+      prepare-data:
+        cachingOptions: {}
+        componentRef:
+          name: comp-prepare-data
+        inputs:
+          parameters:
+            job_id:
+              runtimeValue:
+                constant: '{{$.pipeline_job_uuid}}'
+        taskInfo:
+          name: prepare-data
       register-model:
         cachingOptions: {}
         componentRef:

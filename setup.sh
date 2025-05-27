@@ -33,5 +33,13 @@ oc project kserve
 curl -s "https://raw.githubusercontent.com/kserve/kserve/release-0.15/hack/quick_install.sh" | bash
 oc project kubeflow
 
+# Install Kubeflow Spark Operator
+helm install spark-operator spark-operator/spark-operator \
+    --namespace spark-operator \
+    --create-namespace
+
+# Make sure the Kubeflow Spark Operator is watching the kubeflow namespace. Run this command to let it watch all namespaces:
+helm upgrade spark-operator spark-operator/spark-operator --set spark.jobNamespaces={} --namespace spark-operator
+
 # Adjust RBAC policies
 kubectl apply -k ./manifests -n kubeflow

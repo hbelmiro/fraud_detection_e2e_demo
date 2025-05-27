@@ -26,11 +26,11 @@ attrs==25.3.0
     #   aiohttp
     #   jsonschema
     #   referencing
-bigtree==0.28.0
+bigtree==0.29.2
     # via feast
 cachetools==5.5.2
     # via google-auth
-certifi==2025.1.31
+certifi==2025.4.26
     # via
     #   httpcore
     #   httpx
@@ -40,9 +40,9 @@ certifi==2025.1.31
     #   requests
 cffi==1.17.1
     # via argon2-cffi-bindings
-charset-normalizer==3.4.1
+charset-normalizer==3.4.2
     # via requests
-click==8.1.8
+click==8.2.1
     # via
     #   dask
     #   feast
@@ -54,7 +54,7 @@ cloudpickle==3.1.1
     # via dask
 colorama==0.4.6
     # via feast
-dask==2025.3.0
+dask==2025.5.1
     # via feast
 deprecation==2.1.0
     # via cloudevents
@@ -74,14 +74,14 @@ frozenlist==1.6.0
     # via
     #   aiohttp
     #   aiosignal
-fsspec==2025.3.2
+fsspec==2025.5.0
     # via dask
 google-api-core==2.24.2
     # via
     #   google-cloud-core
     #   google-cloud-storage
     #   kfp
-google-auth==2.39.0
+google-auth==2.40.1
     # via
     #   google-api-core
     #   google-cloud-core
@@ -100,7 +100,7 @@ google-resumable-media==2.7.2
     # via google-cloud-storage
 googleapis-common-protos==1.70.0
     # via google-api-core
-greenlet==3.2.1
+greenlet==3.2.2
     # via sqlalchemy
 grpc-interceptor==0.15.4
     # via kserve
@@ -112,11 +112,11 @@ gunicorn==23.0.0
     # via
     #   feast
     #   uvicorn-worker
-h11==0.14.0
+h11==0.16.0
     # via
     #   httpcore
     #   uvicorn
-httpcore==1.0.8
+httpcore==1.0.9
     # via httpx
 httptools==0.6.4
     # via uvicorn
@@ -128,13 +128,13 @@ idna==3.10
     #   httpx
     #   requests
     #   yarl
-importlib-metadata==8.6.1
+importlib-metadata==8.7.0
     # via dask
 jinja2==3.1.6
     # via feast
 jsonschema==4.23.0
     # via feast
-jsonschema-specifications==2024.10.1
+jsonschema-specifications==2025.4.1
     # via jsonschema
 kfp==2.11.0
     # via pipeline (pyproject.toml)
@@ -146,6 +146,7 @@ kserve==0.15.0
     # via pipeline (pyproject.toml)
 kubernetes==30.1.0
     # via
+    #   pipeline (pyproject.toml)
     #   kfp
     #   kserve
 locket==1.0.0
@@ -158,7 +159,7 @@ mmh3==5.1.0
     # via feast
 model-registry==0.2.16
     # via pipeline (pyproject.toml)
-multidict==6.4.3
+multidict==6.4.4
     # via
     #   aiohttp
     #   yarl
@@ -178,7 +179,7 @@ oauthlib==3.2.2
     # via
     #   kubernetes
     #   requests-oauthlib
-orjson==3.10.16
+orjson==3.10.18
     # via kserve
 packaging==25.0
     # via
@@ -203,7 +204,7 @@ propcache==0.3.1
     #   yarl
 proto-plus==1.26.1
     # via google-api-core
-protobuf==4.25.6
+protobuf==4.25.7
     # via
     #   feast
     #   google-api-core
@@ -216,6 +217,8 @@ psutil==5.9.8
     # via
     #   feast
     #   kserve
+py4j==0.10.9.7
+    # via pyspark
 pyarrow==18.0.0
     # via
     #   dask
@@ -228,20 +231,22 @@ pyasn1-modules==0.4.2
     # via google-auth
 pycparser==2.22
     # via cffi
-pycryptodome==3.22.0
+pycryptodome==3.23.0
     # via minio
-pydantic==2.11.3
+pydantic==2.11.4
     # via
     #   fastapi
     #   feast
     #   kserve
     #   model-registry
-pydantic-core==2.33.1
+pydantic-core==2.33.2
     # via pydantic
 pygments==2.19.1
     # via feast
 pyjwt==2.10.1
     # via feast
+pyspark==3.5.5
+    # via pipeline (pyproject.toml)
 python-dateutil==2.9.0.post0
     # via
     #   kfp-server-api
@@ -277,7 +282,7 @@ requests-oauthlib==2.0.0
     # via kubernetes
 requests-toolbelt==0.10.1
     # via kfp
-rpds-py==0.24.0
+rpds-py==0.25.1
     # via
     #   jsonschema
     #   referencing
@@ -293,7 +298,7 @@ sniffio==1.3.1
     # via
     #   anyio
     #   httpx
-sqlalchemy==2.0.40
+sqlalchemy==2.0.41
     # via feast
 starlette==0.46.2
     # via fastapi

@@ -32,6 +32,13 @@ print_bold "🚀 Pushing pipeline image..."
 docker push quay.io/hbelmiro/fraud-detection-e2e-demo-pipeline:latest
 echo "✅ Pipeline image successfully built and pushed"
 
+cd ../data_preparation
+print_bold "🔨 Building data preparation image..."
+docker build --platform "$PLATFORM" -t "quay.io/hbelmiro/fraud-detection-e2e-demo-data-preparation:latest" -f Containerfile .
+print_bold "🚀 Pushing data preparation image..."
+docker push quay.io/hbelmiro/fraud-detection-e2e-demo-data-preparation:latest
+echo "✅ Data preparation image successfully built and pushed"
+
 cd ../feature_engineering
 print_bold "🔨 Building feature engineering image..."
 docker build --platform "$PLATFORM" -t "quay.io/hbelmiro/fraud-detection-e2e-demo-feature-engineering:latest" -f Containerfile .
