@@ -1,15 +1,21 @@
+import os
 from typing import NamedTuple
 
 from kfp import dsl
 from kfp.dsl import Input, Dataset, Output, Model
 
-PIPELINE_IMAGE = "quay.io/hbelmiro/fraud-detection-e2e-demo-pipeline:latest"
-FEATURE_ENGINEERING_IMAGE = "quay.io/hbelmiro/fraud-detection-e2e-demo-feature-engineering:latest"
-TRAIN_IMAGE = "quay.io/hbelmiro/fraud-detection-e2e-demo-train:latest"
+PIPELINE_IMAGE = os.getenv("PIPELINE_IMAGE", "quay.io/hbelmiro/fraud-detection-e2e-demo-pipeline:latest")
+FEATURE_ENGINEERING_IMAGE = os.getenv("FEATURE_ENGINEERING_IMAGE",
+                                      "quay.io/hbelmiro/fraud-detection-e2e-demo-feature-engineering:latest")
+TRAIN_IMAGE = os.getenv("TRAIN_IMAGE", "quay.io/hbelmiro/fraud-detection-e2e-demo-train:latest")
+DATA_PREPARATION_IMAGE = os.getenv("DATA_PREPARATION_IMAGE",
+                                   "quay.io/hbelmiro/fraud-detection-e2e-demo-data-preparation:latest")
+REST_PREDICTOR_IMAGE = os.getenv("REST_PREDICTOR_IMAGE",
+                                 "quay.io/hbelmiro/fraud-detection-e2e-demo-rest-predictor:latest")
 
 
 @dsl.component(base_image=PIPELINE_IMAGE)
-def prepare_data(job_id: str) -> bool:
+def prepare_data(job_id: str, data_preparation_image: str) -> bool:
     from kubernetes import client, config
     from datetime import datetime, timedelta
     import time
@@ -17,8 +23,6 @@ def prepare_data(job_id: str) -> bool:
 
     logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger(__name__)
-
-    data_preparation_image = "quay.io/hbelmiro/fraud-detection-e2e-demo-data-preparation:latest"
 
     config.load_incluster_config()
 
@@ -255,7 +259,7 @@ def register_model(model: Input[Model]) -> NamedTuple('outputs', model_name=str,
 
 
 @dsl.component(base_image=PIPELINE_IMAGE)
-def serve(model_name: str, model_version_name: str):
+def serve(model_name: str, model_version_name: str, rest_predictor_image: str):
     import logging
     import kserve
     from kubernetes import client
@@ -293,7 +297,7 @@ def serve(model_name: str, model_version_name: str):
                 containers=[
                     V1Container(
                         name="inference-container",
-                        image="quay.io/hbelmiro/fraud-detection-e2e-demo-rest-predictor:latest",
+                        image=rest_predictor_image,
                         command=["python", "predictor.py"],
                         args=["--model-name", model_name, "--model-version", model_version_name]
                     )
@@ -309,7 +313,8 @@ def serve(model_name: str, model_version_name: str):
 def fraud_detection_e2e_pipeline():
     import kfp
 
-    prepare_data_task = prepare_data(job_id=kfp.dsl.PIPELINE_JOB_ID_PLACEHOLDER)
+    prepare_data_task = prepare_data(job_id=kfp.dsl.PIPELINE_JOB_ID_PLACEHOLDER,
+                                     data_preparation_image=DATA_PREPARATION_IMAGE)
     prepare_data_task.set_caching_options(False)
 
     create_features_task = create_features(data_preparation_ok=prepare_data_task.output)
@@ -325,5 +330,6 @@ def fraud_detection_e2e_pipeline():
     register_model_task.set_caching_options(False)
 
     serve_task = serve(model_name=register_model_task.outputs["model_name"],
-                       model_version_name=register_model_task.outputs["model_version"])
+                       model_version_name=register_model_task.outputs["model_version"],
+                       rest_predictor_image=REST_PREDICTOR_IMAGE)
     serve_task.set_caching_options(False)
