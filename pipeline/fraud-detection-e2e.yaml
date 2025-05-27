@@ -15,6 +15,8 @@ components:
     executorLabel: exec-prepare-data
     inputDefinitions:
       parameters:
+        data_preparation_image:
+          parameterType: STRING
         job_id:
           parameterType: STRING
     outputDefinitions:
@@ -54,6 +56,8 @@ components:
         model_name:
           parameterType: STRING
         model_version_name:
+          parameterType: STRING
+        rest_predictor_image:
           parameterType: STRING
   comp-train-model:
     executorLabel: exec-train-model
@@ -106,18 +110,17 @@ deploymentSpec:
 
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef prepare_data(job_id: str) -> bool:\n    from kubernetes import\
-          \ client, config\n    from datetime import datetime, timedelta\n    import\
-          \ time\n    import logging\n\n    logging.basicConfig(level=logging.INFO)\n\
-          \    logger = logging.getLogger(__name__)\n\n    data_preparation_image\
-          \ = \"quay.io/hbelmiro/fraud-detection-e2e-demo-data-preparation:latest\"\
-          \n\n    config.load_incluster_config()\n\n    spark_app = {\n        \"\
-          apiVersion\": \"sparkoperator.k8s.io/v1beta2\",\n        \"kind\": \"SparkApplication\"\
-          ,\n        \"metadata\": {\n            \"name\": f\"data-preparation-{job_id}\"\
-          ,\n            \"namespace\": \"kubeflow\"\n        },\n        \"spec\"\
-          : {\n            \"type\": \"Python\",\n            \"pythonVersion\": \"\
-          3\",\n            \"mode\": \"cluster\",\n            \"image\": data_preparation_image,\n\
-          \            \"imagePullPolicy\": \"Always\",\n            \"mainApplicationFile\"\
+          \ *\n\ndef prepare_data(job_id: str, data_preparation_image: str) -> bool:\n\
+          \    from kubernetes import client, config\n    from datetime import datetime,\
+          \ timedelta\n    import time\n    import logging\n\n    logging.basicConfig(level=logging.INFO)\n\
+          \    logger = logging.getLogger(__name__)\n\n    config.load_incluster_config()\n\
+          \n    spark_app = {\n        \"apiVersion\": \"sparkoperator.k8s.io/v1beta2\"\
+          ,\n        \"kind\": \"SparkApplication\",\n        \"metadata\": {\n  \
+          \          \"name\": f\"data-preparation-{job_id}\",\n            \"namespace\"\
+          : \"kubeflow\"\n        },\n        \"spec\": {\n            \"type\": \"\
+          Python\",\n            \"pythonVersion\": \"3\",\n            \"mode\":\
+          \ \"cluster\",\n            \"image\": data_preparation_image,\n       \
+          \     \"imagePullPolicy\": \"Always\",\n            \"mainApplicationFile\"\
           : \"local:///app/main.py\",\n            \"sparkVersion\": \"3.5.5\",\n\
           \            \"restartPolicy\": {\n                \"type\": \"Never\"\n\
           \            },\n            \"driver\": {\n                \"serviceAccount\"\
@@ -295,12 +298,12 @@ deploymentSpec:
 
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef serve(model_name: str, model_version_name: str):\n    import\
-          \ logging\n    import kserve\n    from kubernetes import client\n    from\
-          \ kubernetes.client import V1Container\n    from model_registry import ModelRegistry\n\
-          \n    logging.info(\"serving model: {}\".format(model_name))\n    logging.info(\"\
-          model_version: {}\".format(model_version_name))\n\n    registry = ModelRegistry(\n\
-          \        server_address=\"http://model-registry-service.kubeflow.svc.cluster.local\"\
+          \ *\n\ndef serve(model_name: str, model_version_name: str, rest_predictor_image:\
+          \ str):\n    import logging\n    import kserve\n    from kubernetes import\
+          \ client\n    from kubernetes.client import V1Container\n    from model_registry\
+          \ import ModelRegistry\n\n    logging.info(\"serving model: {}\".format(model_name))\n\
+          \    logging.info(\"model_version: {}\".format(model_version_name))\n\n\
+          \    registry = ModelRegistry(\n        server_address=\"http://model-registry-service.kubeflow.svc.cluster.local\"\
           ,\n        port=8080,\n        author=\"fraud-detection-e2e-pipeline\",\n\
           \        user_token=\"non-used\",  # Just to avoid a warning\n        is_secure=False\n\
           \    )\n\n    model = registry.get_registered_model(model_name)\n    model_version\
@@ -314,12 +317,11 @@ deploymentSpec:
           \            predictor=kserve.V1beta1PredictorSpec(\n                service_account_name=\"\
           kserve-sa\",\n                containers=[\n                    V1Container(\n\
           \                        name=\"inference-container\",\n               \
-          \         image=\"quay.io/hbelmiro/fraud-detection-e2e-demo-rest-predictor:latest\"\
-          ,\n                        command=[\"python\", \"predictor.py\"],\n   \
-          \                     args=[\"--model-name\", model_name, \"--model-version\"\
-          , model_version_name]\n                    )\n                ]\n      \
-          \      )\n        ),\n    )\n    ks_client = kserve.KServeClient()\n   \
-          \ ks_client.create(inference_service)\n\n"
+          \         image=rest_predictor_image,\n                        command=[\"\
+          python\", \"predictor.py\"],\n                        args=[\"--model-name\"\
+          , model_name, \"--model-version\", model_version_name]\n               \
+          \     )\n                ]\n            )\n        ),\n    )\n    ks_client\
+          \ = kserve.KServeClient()\n    ks_client.create(inference_service)\n\n"
         image: quay.io/hbelmiro/fraud-detection-e2e-demo-pipeline:latest
     exec-train-model:
       container:
@@ -357,6 +359,9 @@ root:
           name: comp-prepare-data
         inputs:
           parameters:
+            data_preparation_image:
+              runtimeValue:
+                constant: quay.io/hbelmiro/fraud-detection-e2e-demo-data-preparation:latest
             job_id:
               runtimeValue:
                 constant: '{{$.pipeline_job_uuid}}'
@@ -406,6 +411,9 @@ root:
               taskOutputParameter:
                 outputParameterKey: model_version
                 producerTask: register-model
+            rest_predictor_image:
+              runtimeValue:
+                constant: quay.io/hbelmiro/fraud-detection-e2e-demo-rest-predictor:latest
         taskInfo:
           name: serve
       train-model:
