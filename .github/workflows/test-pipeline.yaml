@@ -14,6 +14,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
       - name: Create Kind Cluster
         uses: container-tools/kind-action@v2
         with:
@@ -22,6 +27,22 @@ jobs:
           version: v0.25.0
           node_image: kindest/node:v1.31.6
 
-      - name: Build images
+#      - name: Build images
+#        shell: bash
+#        run: ./build_images.sh --target ci
+
+      - name: Install dependencies
+        working-directory: ./pipeline
         shell: bash
-        run: ./build_images.sh --target ci
+        run: pip install -r requirements-linux.txt
+
+      - name: Compile pipeline
+        working-directory: ./pipeline
+        shell: bash
+        run: |
+          export PIPELINE_IMAGE=kind-registry:5000/fraud-detection-e2e-demo-pipeline-ci:latest
+          export DATA_PREPARATION_IMAGE=kind-registry:5000/fraud-detection-e2e-demo-data-preparation-ci:latest
+          export FEATURE_ENGINEERING_IMAGE=kind-registry:5000/fraud-detection-e2e-demo-feature-engineering-ci:latest
+          export TRAIN_IMAGE=kind-registry:5000/fraud-detection-e2e-demo-train-ci:latest
+          export REST_PREDICTOR_IMAGE=kind-registry:5000/fraud-detection-e2e-demo-rest-predictor-ci:latest
+          kfp dsl compile --py fraud-detection-e2e.py --output fraud-detection-e2e.yaml
