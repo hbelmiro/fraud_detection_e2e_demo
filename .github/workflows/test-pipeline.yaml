@@ -1,0 +1,25 @@
+name: Test pipeline
+
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  check-pipelines:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create Kind Cluster
+        uses: container-tools/kind-action@v2
+        with:
+          cluster_name: fraud-detection-e2e-demo
+          kubectl_version: "v1.31.0"
+          version: v0.25.0
+          node_image: kindest/node:v1.31.6
+
+      - name: Build images
+        shell: bash
+        run: ./build_images.sh --target ci
