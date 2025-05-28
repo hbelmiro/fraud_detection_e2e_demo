@@ -9,6 +9,7 @@ on:
 jobs:
   check-pipelines:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
 
     steps:
       - name: Create Kind Cluster
@@ -36,6 +37,7 @@ jobs:
           python-version: '3.11'
 
       - name: Build images
+        timeout-minutes: 20
         shell: bash
         run: ./build_images.sh --target ci
 
@@ -56,6 +58,7 @@ jobs:
           kfp dsl compile --py fraud-detection-e2e.py --output fraud-detection-e2e.yaml
 
       - name: Wait for KFP to be deployed
+        timeout-minutes: 16
         shell: bash
         run: |
           kubectl wait --for=condition=available --timeout=15m -n kubeflow deployment --all
@@ -69,17 +72,19 @@ jobs:
         run: kubectl port-forward --namespace kubeflow svc/ml-pipeline 8888:8888 &
 
       - name: Setup
+        timeout-minutes: 10
         shell: bash
         run: ./setup.sh
 
       - name: Upload pipeline
+        timeout-minutes: 16
         working-directory: ./pipeline
         shell: python {0}
         run: |
           import sys, kfp
           client = kfp.Client()
           run = client.create_run_from_pipeline_package('fraud-detection-e2e.yaml', experiment_name='my-experiment')
-          result = run.wait_for_run_completion()
+          result = run.wait_for_run_completion(900)
           sys.exit(0 if result.state.lower() == 'succeeded' else 1)
 
       - name: Forward the inference port
