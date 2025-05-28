@@ -11,14 +11,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
       - name: Create Kind Cluster
         uses: container-tools/kind-action@v2
         with:
@@ -26,6 +18,23 @@ jobs:
           kubectl_version: "v1.31.0"
           version: v0.25.0
           node_image: kindest/node:v1.31.6
+
+      - name: Deploy KFP
+        shell: bash
+        run: |
+          export PIPELINE_VERSION=2.5.0
+          kubectl apply -k "github.com/kubeflow/pipelines/manifests/kustomize/cluster-scoped-resources?ref=$PIPELINE_VERSION"
+          kubectl wait --for condition=established --timeout=60s crd/applications.app.k8s.io
+          kubectl apply -k "github.com/kubeflow/pipelines/manifests/kustomize/env/dev?ref=$PIPELINE_VERSION"
+          kubectl wait --for=condition=available --timeout=15m -n kubeflow deployment --all
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
 
       - name: Build images
         shell: bash
@@ -47,13 +56,9 @@ jobs:
           export REST_PREDICTOR_IMAGE=kind-registry:5000/fraud-detection-e2e-demo-rest-predictor-ci:latest
           kfp dsl compile --py fraud-detection-e2e.py --output fraud-detection-e2e.yaml
 
-      - name: Deploy KFP
+      - name: Wait for KFP to be deployed
         shell: bash
         run: |
-          export PIPELINE_VERSION=2.5.0
-          kubectl apply -k "github.com/kubeflow/pipelines/manifests/kustomize/cluster-scoped-resources?ref=$PIPELINE_VERSION"
-          kubectl wait --for condition=established --timeout=60s crd/applications.app.k8s.io
-          kubectl apply -k "github.com/kubeflow/pipelines/manifests/kustomize/env/dev?ref=$PIPELINE_VERSION"
           kubectl wait --for=condition=available --timeout=15m -n kubeflow deployment --all
 
       - name: Forward MinIO port
