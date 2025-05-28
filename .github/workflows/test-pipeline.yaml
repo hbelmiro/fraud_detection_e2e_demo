@@ -27,9 +27,9 @@ jobs:
           version: v0.25.0
           node_image: kindest/node:v1.31.6
 
-#      - name: Build images
-#        shell: bash
-#        run: ./build_images.sh --target ci
+      - name: Build images
+        shell: bash
+        run: ./build_images.sh --target ci
 
       - name: Install dependencies
         working-directory: ./pipeline
@@ -46,3 +46,43 @@ jobs:
           export TRAIN_IMAGE=kind-registry:5000/fraud-detection-e2e-demo-train-ci:latest
           export REST_PREDICTOR_IMAGE=kind-registry:5000/fraud-detection-e2e-demo-rest-predictor-ci:latest
           kfp dsl compile --py fraud-detection-e2e.py --output fraud-detection-e2e.yaml
+
+      - name: Deploy KFP
+        shell: bash
+        run: |
+          export PIPELINE_VERSION=2.5.0
+          kubectl apply -k "github.com/kubeflow/pipelines/manifests/kustomize/cluster-scoped-resources?ref=$PIPELINE_VERSION"
+          kubectl wait --for condition=established --timeout=60s crd/applications.app.k8s.io
+          kubectl apply -k "github.com/kubeflow/pipelines/manifests/kustomize/env/dev?ref=$PIPELINE_VERSION"
+          kubectl wait --for=condition=available --timeout=10m -n kubeflow deployment --all
+
+      - name: Forward MinIO port
+        shell: bash
+        run: kubectl port-forward --namespace kubeflow svc/minio-service 9000:9000 &
+
+      - name: Forward KFP API port
+        shell: bash
+        run: kubectl port-forward --namespace kubeflow svc/ml-pipeline 8888:8888 &
+
+      - name: Setup
+        shell: bash
+        run: ./setup.sh
+
+      - name: Upload pipeline
+        working-directory: ./pipeline
+        shell: python {0}
+        run: |
+          import sys, kfp
+          client = kfp.Client()
+          run = client.create_run_from_pipeline_package('pipeline.yaml', experiment_name='my-experiment')
+          result = run.wait_for_run_completion()
+          sys.exit(0 if result.state.lower() == 'succeeded' else 1)
+
+      - name: Forward the inference port
+        shell: bash
+        run: kubectl -n kubeflow get pods -l serving.kserve.io/inferenceservice=fraud-detection -o jsonpath="{.items[0].metadata.name}" | xargs -I {} kubectl port-forward -n kubeflow pod/{} 8081:8080
+
+      - name: Run an inference
+        shell: bash
+        run: |
+          curl -i -X POST http://localhost:8081/v1/models/onnx-model:predict -H "Content-Type: application/json" -d '{"instances": [[50.0, 5.0, 0.0, 0.0, 1.0]]}'
