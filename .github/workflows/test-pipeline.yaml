@@ -78,7 +78,7 @@ jobs:
         run: |
           import sys, kfp
           client = kfp.Client()
-          run = client.create_run_from_pipeline_package('pipeline.yaml', experiment_name='my-experiment')
+          run = client.create_run_from_pipeline_package('fraud-detection-e2e.yaml', experiment_name='my-experiment')
           result = run.wait_for_run_completion()
           sys.exit(0 if result.state.lower() == 'succeeded' else 1)
 
