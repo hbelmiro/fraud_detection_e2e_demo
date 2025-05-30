@@ -20,6 +20,8 @@ jobs:
           
           chmod +x $HOME/minio-binaries/mc
           export PATH=$PATH:$HOME/minio-binaries/
+          
+          mc --version
 
       - name: Install Helm
         run: |
@@ -28,16 +30,8 @@ jobs:
           echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/helm.gpg] https://baltocdn.com/helm/stable/debian/ all main" | sudo tee /etc/apt/sources.list.d/helm-stable-debian.list
           sudo apt-get update
           sudo apt-get install helm
-
-      - name: Free disk space
-        run: |
-          sudo apt-get remove -y '^dotnet-.*' '^llvm-.*' 'php.*' '^mongodb-.*' '^mysql-.*' azure-cli google-cloud-sdk
-          sudo apt-get autoremove -y
-          sudo apt-get clean
           
-          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup
-          
-          docker system prune -af --volumes
+          helm version
 
       - name: Create Kind Cluster
         uses: container-tools/kind-action@v2
@@ -55,9 +49,18 @@ jobs:
           kubectl wait --for condition=established --timeout=60s crd/applications.app.k8s.io
           kubectl apply -k "github.com/kubeflow/pipelines/manifests/kustomize/env/dev?ref=$PIPELINE_VERSION"
 
+      - name: Free disk space
+        run: |
+          sudo apt-get remove -y '^dotnet-.*' '^llvm-.*' 'php.*' '^mongodb-.*' '^mysql-.*' azure-cli google-cloud-sdk
+          sudo apt-get autoremove -y
+          sudo apt-get clean
+          
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup
+          
+          docker system prune -af --volumes
+
       - name: Checkout code
         uses: actions/checkout@v4
-
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -88,10 +91,10 @@ jobs:
           kfp dsl compile --py fraud-detection-e2e.py --output fraud-detection-e2e.yaml
 
       - name: Wait for KFP to be deployed
-        timeout-minutes: 16
+        timeout-minutes: 21
         shell: bash
         run: |
-          kubectl wait --for=condition=available --timeout=15m -n kubeflow deployment --all
+          kubectl wait --for=condition=available --timeout=20m -n kubeflow deployment --all
 
       - name: Forward MinIO port
         shell: bash
