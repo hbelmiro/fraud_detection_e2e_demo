@@ -17,10 +17,10 @@ jobs:
           curl https://dl.min.io/client/mc/release/linux-amd64/mc \
             --create-dirs \
             -o ~/minio-binaries/mc
-          
+
           chmod +x $HOME/minio-binaries/mc
           export PATH=$PATH:$HOME/minio-binaries/
-          
+
           mc --version
 
       - name: Install Helm
@@ -30,80 +30,80 @@ jobs:
           echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/helm.gpg] https://baltocdn.com/helm/stable/debian/ all main" | sudo tee /etc/apt/sources.list.d/helm-stable-debian.list
           sudo apt-get update
           sudo apt-get install helm
-          
+
           helm version
 
-#      - name: Create Kind Cluster
-#        uses: container-tools/kind-action@v2
-#        with:
-#          cluster_name: fraud-detection-e2e-demo
-#          kubectl_version: "v1.31.0"
-#          version: v0.25.0
-#          node_image: kindest/node:v1.31.6
-#
-#      - name: Deploy KFP
-#        shell: bash
-#        run: |
-#          export PIPELINE_VERSION=2.5.0
-#          kubectl apply -k "github.com/kubeflow/pipelines/manifests/kustomize/cluster-scoped-resources?ref=$PIPELINE_VERSION"
-#          kubectl wait --for condition=established --timeout=60s crd/applications.app.k8s.io
-#          kubectl apply -k "github.com/kubeflow/pipelines/manifests/kustomize/env/dev?ref=$PIPELINE_VERSION"
-#
-#      - name: Free disk space
-#        run: |
-#          sudo apt-get remove -y '^dotnet-.*' '^llvm-.*' 'php.*' '^mongodb-.*' '^mysql-.*' azure-cli google-cloud-sdk
-#          sudo apt-get autoremove -y
-#          sudo apt-get clean
-#
-#          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup
-#
-#          docker system prune -af --volumes
-#
+      - name: Create Kind Cluster
+        uses: container-tools/kind-action@v2
+        with:
+          cluster_name: fraud-detection-e2e-demo
+          kubectl_version: "v1.31.0"
+          version: v0.25.0
+          node_image: kindest/node:v1.31.6
+
+      - name: Deploy KFP
+        shell: bash
+        run: |
+          export PIPELINE_VERSION=2.5.0
+          kubectl apply -k "github.com/kubeflow/pipelines/manifests/kustomize/cluster-scoped-resources?ref=$PIPELINE_VERSION"
+          kubectl wait --for condition=established --timeout=60s crd/applications.app.k8s.io
+          kubectl apply -k "github.com/kubeflow/pipelines/manifests/kustomize/env/dev?ref=$PIPELINE_VERSION"
+
+      - name: Free disk space
+        run: |
+          sudo apt-get remove -y '^dotnet-.*' '^llvm-.*' 'php.*' '^mongodb-.*' '^mysql-.*' azure-cli google-cloud-sdk
+          sudo apt-get autoremove -y
+          sudo apt-get clean
+
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup
+
+          docker system prune -af --volumes
+
       - name: Checkout code
         uses: actions/checkout@v4
 
-#      - name: Set up Python
-#        uses: actions/setup-python@v5
-#        with:
-#          python-version: '3.11'
-#
-#      - name: Build images
-#        timeout-minutes: 20
-#        shell: bash
-#        run: ./build_images.sh --target ci
-#
-#      - name: Clean Docker cache
-#        run: docker system prune -af --volumes
-#
-#      - name: Install dependencies
-#        working-directory: ./pipeline
-#        shell: bash
-#        run: pip install -r requirements-linux.txt
-#
-#      - name: Compile pipeline
-#        working-directory: ./pipeline
-#        shell: bash
-#        run: |
-#          export PIPELINE_IMAGE=kind-registry:5000/fraud-detection-e2e-demo-pipeline-ci:latest
-#          export DATA_PREPARATION_IMAGE=kind-registry:5000/fraud-detection-e2e-demo-data-preparation-ci:latest
-#          export FEATURE_ENGINEERING_IMAGE=kind-registry:5000/fraud-detection-e2e-demo-feature-engineering-ci:latest
-#          export TRAIN_IMAGE=kind-registry:5000/fraud-detection-e2e-demo-train-ci:latest
-#          export REST_PREDICTOR_IMAGE=kind-registry:5000/fraud-detection-e2e-demo-rest-predictor-ci:latest
-#          kfp dsl compile --py fraud-detection-e2e.py --output fraud-detection-e2e.yaml
-#
-#      - name: Wait for KFP to be deployed
-#        timeout-minutes: 21
-#        shell: bash
-#        run: |
-#          kubectl wait --for=condition=available --timeout=20m -n kubeflow deployment --all
-#
-#      - name: Forward MinIO port
-#        shell: bash
-#        run: kubectl port-forward --namespace kubeflow svc/minio-service 9000:9000 &
-#
-#      - name: Forward KFP API port
-#        shell: bash
-#        run: kubectl port-forward --namespace kubeflow svc/ml-pipeline 8888:8888 &
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Build images
+        timeout-minutes: 20
+        shell: bash
+        run: ./build_images.sh --target ci
+
+      - name: Clean Docker cache
+        run: docker system prune -af --volumes
+
+      - name: Install dependencies
+        working-directory: ./pipeline
+        shell: bash
+        run: pip install -r requirements-linux.txt
+
+      - name: Compile pipeline
+        working-directory: ./pipeline
+        shell: bash
+        run: |
+          export PIPELINE_IMAGE=kind-registry:5000/fraud-detection-e2e-demo-pipeline-ci:latest
+          export DATA_PREPARATION_IMAGE=kind-registry:5000/fraud-detection-e2e-demo-data-preparation-ci:latest
+          export FEATURE_ENGINEERING_IMAGE=kind-registry:5000/fraud-detection-e2e-demo-feature-engineering-ci:latest
+          export TRAIN_IMAGE=kind-registry:5000/fraud-detection-e2e-demo-train-ci:latest
+          export REST_PREDICTOR_IMAGE=kind-registry:5000/fraud-detection-e2e-demo-rest-predictor-ci:latest
+          kfp dsl compile --py fraud-detection-e2e.py --output fraud-detection-e2e.yaml
+
+      - name: Wait for KFP to be deployed
+        timeout-minutes: 21
+        shell: bash
+        run: |
+          kubectl wait --for=condition=available --timeout=20m -n kubeflow deployment --all
+
+      - name: Forward MinIO port
+        shell: bash
+        run: kubectl port-forward --namespace kubeflow svc/minio-service 9000:9000 &
+
+      - name: Forward KFP API port
+        shell: bash
+        run: kubectl port-forward --namespace kubeflow svc/ml-pipeline 8888:8888 &
 
       - name: Setup
         timeout-minutes: 10
@@ -111,6 +111,17 @@ jobs:
         run: |
           export PATH=$PATH:$HOME/minio-binaries/
           ./setup.sh
+
+      - name: Remove MinIO client
+        shell: bash
+        run: rm -rf $HOME/minio-binaries
+
+      - name: Remove Helm
+        shell: bash
+        run: |
+          sudo apt-get remove -y helm
+          sudo rm /etc/apt/sources.list.d/helm-stable-debian.list
+          sudo rm /usr/share/keyrings/helm.gpg
 
       - name: Upload pipeline
         timeout-minutes: 16
