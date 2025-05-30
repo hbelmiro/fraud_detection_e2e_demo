@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+mc --version
+helm version
+
 set -euo pipefail
 
 # Configure MinIO Client
