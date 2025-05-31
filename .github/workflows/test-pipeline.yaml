@@ -89,6 +89,16 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Generate synthetic data
+        working-directory: ./feature_engineering
+        shell: bash
+        run: |
+          python -m venv venv
+          source venv/bin/activate
+          pip install -r requirements-linux.txt
+          python synthetic_data_generation.py
+          deactivate
+
       - name: Build images
         timeout-minutes: 20
         shell: bash
@@ -112,16 +122,6 @@ jobs:
           export TRAIN_IMAGE=kind-registry:5000/fraud-detection-e2e-demo-train-ci:latest
           export REST_PREDICTOR_IMAGE=kind-registry:5000/fraud-detection-e2e-demo-rest-predictor-ci:latest
           kfp dsl compile --py fraud-detection-e2e.py --output fraud-detection-e2e.yaml
-
-      - name: Generate synthetic data
-        working-directory: ./feature_engineering
-        shell: bash
-        run: |
-          python -m virtualenv venv
-          source venv/bin/activate
-          pip install -r requirements-linux.txt
-          python synthetic_data_generation.py
-          deactivate
 
       - name: Check deployment status
         shell: bash
