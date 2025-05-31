@@ -113,11 +113,55 @@ jobs:
           export REST_PREDICTOR_IMAGE=kind-registry:5000/fraud-detection-e2e-demo-rest-predictor-ci:latest
           kfp dsl compile --py fraud-detection-e2e.py --output fraud-detection-e2e.yaml
 
+      - name: Check deployment status
+        shell: bash
+        run: kubectl get deployments -n kubeflow
+
+      - name: Check problematic pods
+        shell: bash
+        run: |
+          kubectl get pods -n kubeflow | grep -v Running
+
       - name: Wait for KFP to be deployed
         timeout-minutes: 26
         shell: bash
         run: |
-          kubectl wait --for=condition=available --timeout=25m -n kubeflow deployment --all
+          start_time=$(date +%s)
+          timeout_seconds=$((25 * 60))
+          check_interval=60  # Check every minute
+          
+          while true; do
+            current_time=$(date +%s)
+            elapsed=$((current_time - start_time))
+            
+            if [ $elapsed -ge $timeout_seconds ]; then
+              echo "Timeout reached. The following deployments failed to become available:"
+              kubectl get deployments -n kubeflow -o custom-columns=NAME:.metadata.name,AVAILABLE:.status.availableReplicas,READY:.status.readyReplicas,TOTAL:.status.replicas | grep -v -E '[1-9]+/[1-9]+'
+              exit 1
+            fi
+            
+            # Check if all deployments are available
+            not_available=$(kubectl get deployments -n kubeflow -o jsonpath='{.items[?(@.status.availableReplicas<@.status.replicas)].metadata.name}')
+            
+            if [ -z "$not_available" ]; then
+              echo "All deployments are available!"
+              break
+            else
+              echo "Waiting for deployments to become available ($(($timeout_seconds - $elapsed))s remaining):"
+              echo "$not_available"
+              
+              # For long-running issues, get more details about problematic deployments
+              if [ $((elapsed % 300)) -eq 0 ]; then  # Every 5 minutes
+                echo "Detailed status of problematic deployments:"
+                for deploy in $not_available; do
+                  echo "==== Pods for deployment $deploy ===="
+                  kubectl get pods -n kubeflow -l app=$deploy
+                done
+              fi
+            fi
+            
+            sleep $check_interval
+          done
 
       - name: Adjust RBAC policies
         shell: bash
