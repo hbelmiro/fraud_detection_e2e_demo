@@ -49,6 +49,26 @@ jobs:
           kubectl wait --for condition=established --timeout=60s crd/applications.app.k8s.io
           kubectl apply -k "github.com/kubeflow/pipelines/manifests/kustomize/env/dev?ref=$PIPELINE_VERSION"
 
+      - name: Install Model Registry
+        shell: bash
+        run: kubectl apply -k "https://github.com/kubeflow/model-registry/manifests/kustomize/overlays/db?ref=v0.2.16"
+
+      - name: Install KServe
+        shell: bash
+        run: |
+          kubectl create namespace kserve
+          kubectl config set-context --current --namespace=kserve
+          curl -s "https://raw.githubusercontent.com/kserve/kserve/release-0.15/hack/quick_install.sh" | bash
+          kubectl config set-context --current --namespace=kubeflow
+
+      - name: Install Spark Operator
+        shell: bash
+        run: |
+          helm install spark-operator spark-operator/spark-operator --namespace spark-operator --create-namespace
+          
+          # Make sure the Kubeflow Spark Operator is watching the kubeflow namespace. Run this command to let it watch all namespaces:
+          helm upgrade spark-operator spark-operator/spark-operator --set spark.jobNamespaces={} --namespace spark-operator
+
       - name: Free disk space
         run: |
           sudo apt-get remove -y '^dotnet-.*' '^llvm-.*' 'php.*' '^mongodb-.*' '^mysql-.*' azure-cli google-cloud-sdk
@@ -92,10 +112,14 @@ jobs:
           kfp dsl compile --py fraud-detection-e2e.py --output fraud-detection-e2e.yaml
 
       - name: Wait for KFP to be deployed
-        timeout-minutes: 21
+        timeout-minutes: 26
         shell: bash
         run: |
-          kubectl wait --for=condition=available --timeout=20m -n kubeflow deployment --all
+          kubectl wait --for=condition=available --timeout=25m -n kubeflow deployment --all
+
+      - name: Adjust RBAC policies
+        shell: bash
+        run: kubectl apply -k ./manifests -n kubeflow
 
       - name: Forward MinIO port
         shell: bash
@@ -105,12 +129,32 @@ jobs:
         shell: bash
         run: kubectl port-forward --namespace kubeflow svc/ml-pipeline 8888:8888 &
 
-      - name: Setup
-        timeout-minutes: 10
+      - name: Upload datasets to MinIO
         shell: bash
         run: |
           export PATH=$PATH:$HOME/minio-binaries/
-          ./setup.sh
+          
+          # Configure MinIO Client
+          mc alias set local http://localhost:9000 minio minio123
+          
+          # Create directory structure
+          mc mb local/mlpipeline/artifacts/feature_repo/data/input --p
+          
+          # Upload data files
+          mc cp \
+            feature_engineering/feature_repo/data/input/raw_transaction_datasource.csv \
+            feature_engineering/feature_repo/data/input/test.csv \
+            feature_engineering/feature_repo/data/input/train.csv \
+            feature_engineering/feature_repo/data/input/validate.csv \
+            local/mlpipeline/artifacts/feature_repo/data/input/
+          
+          # Upload feature store configuration
+          mc cp \
+            feature_engineering/feature_repo/feature_store.yaml \
+            local/mlpipeline/artifacts/feature_repo/
+          
+          # Verify the upload (optional)
+          mc ls --recursive local/mlpipeline/artifacts/
 
       - name: Remove MinIO client
         shell: bash
