@@ -64,6 +64,8 @@ jobs:
       - name: Install Spark Operator
         shell: bash
         run: |
+          helm repo add spark-operator https://kubeflow.github.io/spark-operator
+          helm repo update
           helm install spark-operator spark-operator/spark-operator --namespace spark-operator --create-namespace
           
           # Make sure the Kubeflow Spark Operator is watching the kubeflow namespace. Run this command to let it watch all namespaces:
