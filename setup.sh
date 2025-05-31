@@ -29,11 +29,13 @@ kubectl apply -k "https://github.com/kubeflow/model-registry/manifests/kustomize
 
 # Install KServe
 kubectl create namespace kserve
-oc project kserve
+kubectl config set-context --current --namespace=kserve
 curl -s "https://raw.githubusercontent.com/kserve/kserve/release-0.15/hack/quick_install.sh" | bash
-oc project kubeflow
+kubectl config set-context --current --namespace=kubeflow
 
 # Install Kubeflow Spark Operator
+helm repo add spark-operator https://kubeflow.github.io/spark-operator
+helm repo update
 helm install spark-operator spark-operator/spark-operator \
     --namespace spark-operator \
     --create-namespace
