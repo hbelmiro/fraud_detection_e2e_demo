@@ -113,6 +113,16 @@ jobs:
           export REST_PREDICTOR_IMAGE=kind-registry:5000/fraud-detection-e2e-demo-rest-predictor-ci:latest
           kfp dsl compile --py fraud-detection-e2e.py --output fraud-detection-e2e.yaml
 
+      - name: Generate synthetic data
+        working-directory: ./feature_engineering
+        shell: bash
+        run: |
+          python -m virtualenv venv
+          source venv/bin/activate
+          pip install -r requirements-linux.txt
+          python synthetic_data_generation.py
+          deactivate
+
       - name: Check deployment status
         shell: bash
         run: kubectl get deployments -n kubeflow
@@ -145,6 +155,7 @@ jobs:
             
             if [ -z "$not_available" ]; then
               echo "All deployments are available!"
+              kubectl get pods -n kubeflow
               break
             else
               echo "Waiting for deployments to become available ($(($timeout_seconds - $elapsed))s remaining):"
