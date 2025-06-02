@@ -12,6 +12,9 @@ jobs:
     timeout-minutes: 60
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
 #      - name: Install MinIO client
 #        run: |
 #          curl https://dl.min.io/client/mc/release/linux-amd64/mc \
@@ -90,8 +93,6 @@ jobs:
 #
 #          docker system prune -af --volumes
 #
-#      - name: Checkout code
-#        uses: actions/checkout@v4
 #
 #      - name: Set up Python
 #        uses: actions/setup-python@v5
