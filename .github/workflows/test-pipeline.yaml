@@ -55,10 +55,7 @@ jobs:
 
       - name: Install Model Registry
         shell: bash
-        run: |
-          kubectl create namespace kubeflow
-          kubectl config set-context --current --namespace=kubeflow
-          kubectl apply -k "https://github.com/kubeflow/model-registry/manifests/kustomize/overlays/db?ref=v0.2.16"
+        run: kubectl apply -k "https://github.com/kubeflow/model-registry/manifests/kustomize/overlays/db?ref=v0.2.16"
 
 #
 #      - name: Install Spark Operator
