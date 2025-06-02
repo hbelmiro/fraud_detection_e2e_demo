@@ -12,26 +12,26 @@ jobs:
     timeout-minutes: 60
 
     steps:
-      - name: Install MinIO client
-        run: |
-          curl https://dl.min.io/client/mc/release/linux-amd64/mc \
-            --create-dirs \
-            -o ~/minio-binaries/mc
-
-          chmod +x $HOME/minio-binaries/mc
-          export PATH=$PATH:$HOME/minio-binaries/
-
-          mc --version
-
-      - name: Install Helm
-        run: |
-          curl https://baltocdn.com/helm/signing.asc | gpg --dearmor | sudo tee /usr/share/keyrings/helm.gpg > /dev/null
-          sudo apt-get install apt-transport-https --yes
-          echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/helm.gpg] https://baltocdn.com/helm/stable/debian/ all main" | sudo tee /etc/apt/sources.list.d/helm-stable-debian.list
-          sudo apt-get update
-          sudo apt-get install helm
-
-          helm version
+#      - name: Install MinIO client
+#        run: |
+#          curl https://dl.min.io/client/mc/release/linux-amd64/mc \
+#            --create-dirs \
+#            -o ~/minio-binaries/mc
+#
+#          chmod +x $HOME/minio-binaries/mc
+#          export PATH=$PATH:$HOME/minio-binaries/
+#
+#          mc --version
+#
+#      - name: Install Helm
+#        run: |
+#          curl https://baltocdn.com/helm/signing.asc | gpg --dearmor | sudo tee /usr/share/keyrings/helm.gpg > /dev/null
+#          sudo apt-get install apt-transport-https --yes
+#          echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/helm.gpg] https://baltocdn.com/helm/stable/debian/ all main" | sudo tee /etc/apt/sources.list.d/helm-stable-debian.list
+#          sudo apt-get update
+#          sudo apt-get install helm
+#
+#          helm version
 
       - name: Create Kind Cluster
         uses: container-tools/kind-action@v2
@@ -41,6 +41,18 @@ jobs:
           version: v0.25.0
           node_image: kindest/node:v1.31.6
 
+      - name: Deploy KFP
+        shell: bash
+        run: |
+          export PIPELINE_VERSION=2.5.0
+          kubectl apply -k "github.com/kubeflow/pipelines/manifests/kustomize/cluster-scoped-resources?ref=$PIPELINE_VERSION"
+          kubectl wait --for condition=established --timeout=60s crd/applications.app.k8s.io
+          kubectl apply -k "github.com/kubeflow/pipelines/manifests/kustomize/env/dev?ref=$PIPELINE_VERSION"
+
+      - name: Wait for resources to stabilize
+        shell: bash
+        run: sleep 120
+
       - name: Install Model Registry
         shell: bash
         run: |
@@ -48,13 +60,6 @@ jobs:
           kubectl config set-context --current --namespace=kubeflow
           kubectl apply -k "https://github.com/kubeflow/model-registry/manifests/kustomize/overlays/db?ref=v0.2.16"
 
-#      - name: Deploy KFP
-#        shell: bash
-#        run: |
-#          export PIPELINE_VERSION=2.5.0
-#          kubectl apply -k "github.com/kubeflow/pipelines/manifests/kustomize/cluster-scoped-resources?ref=$PIPELINE_VERSION"
-#          kubectl wait --for condition=established --timeout=60s crd/applications.app.k8s.io
-#          kubectl apply -k "github.com/kubeflow/pipelines/manifests/kustomize/env/dev?ref=$PIPELINE_VERSION"
 #
 #      - name: Install Spark Operator
 #        shell: bash
