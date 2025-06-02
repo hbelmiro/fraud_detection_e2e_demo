@@ -41,205 +41,223 @@ jobs:
           version: v0.25.0
           node_image: kindest/node:v1.31.6
 
-      - name: Deploy KFP
-        shell: bash
-        run: |
-          export PIPELINE_VERSION=2.5.0
-          kubectl apply -k "github.com/kubeflow/pipelines/manifests/kustomize/cluster-scoped-resources?ref=$PIPELINE_VERSION"
-          kubectl wait --for condition=established --timeout=60s crd/applications.app.k8s.io
-          kubectl apply -k "github.com/kubeflow/pipelines/manifests/kustomize/env/dev?ref=$PIPELINE_VERSION"
-
-      - name: Install Spark Operator
-        shell: bash
-        run: |
-          helm repo add spark-operator https://kubeflow.github.io/spark-operator
-          helm repo update
-          helm install spark-operator spark-operator/spark-operator --namespace spark-operator --create-namespace
-          
-          # Make sure the Kubeflow Spark Operator is watching the kubeflow namespace. Run this command to let it watch all namespaces:
-          helm upgrade spark-operator spark-operator/spark-operator --set spark.jobNamespaces={} --namespace spark-operator
-
       - name: Install Model Registry
         shell: bash
         run: kubectl apply -k "https://github.com/kubeflow/model-registry/manifests/kustomize/overlays/db?ref=v0.2.16"
 
-      - name: Install KServe
-        shell: bash
-        run: |
-          kubectl create namespace kserve
-          kubectl config set-context --current --namespace=kserve
-          curl -s "https://raw.githubusercontent.com/kserve/kserve/release-0.15/hack/quick_install.sh" | bash
-          kubectl config set-context --current --namespace=kubeflow
+#      - name: Deploy KFP
+#        shell: bash
+#        run: |
+#          export PIPELINE_VERSION=2.5.0
+#          kubectl apply -k "github.com/kubeflow/pipelines/manifests/kustomize/cluster-scoped-resources?ref=$PIPELINE_VERSION"
+#          kubectl wait --for condition=established --timeout=60s crd/applications.app.k8s.io
+#          kubectl apply -k "github.com/kubeflow/pipelines/manifests/kustomize/env/dev?ref=$PIPELINE_VERSION"
+#
+#      - name: Install Spark Operator
+#        shell: bash
+#        run: |
+#          helm repo add spark-operator https://kubeflow.github.io/spark-operator
+#          helm repo update
+#          helm install spark-operator spark-operator/spark-operator --namespace spark-operator --create-namespace
+#          
+#          # Make sure the Kubeflow Spark Operator is watching the kubeflow namespace. Run this command to let it watch all namespaces:
+#          helm upgrade spark-operator spark-operator/spark-operator --set spark.jobNamespaces={} --namespace spark-operator
 
-      - name: Free disk space
-        run: |
-          sudo apt-get remove -y '^dotnet-.*' '^llvm-.*' 'php.*' '^mongodb-.*' '^mysql-.*' azure-cli google-cloud-sdk
-          sudo apt-get autoremove -y
-          sudo apt-get clean
-
-          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup
-
-          docker system prune -af --volumes
-
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Generate synthetic data
-        working-directory: ./feature_engineering
-        shell: bash
-        run: |
-          python -m venv venv
-          source venv/bin/activate
-          pip install -r requirements-linux.txt
-          python synthetic_data_generation.py
-          deactivate
-
-      - name: Build images
-        timeout-minutes: 20
-        shell: bash
-        run: ./build_images.sh --target ci
-
-      - name: Clean Docker cache
-        run: docker system prune -af --volumes
-
-      - name: Install dependencies
-        working-directory: ./pipeline
-        shell: bash
-        run: pip install -r requirements-linux.txt
-
-      - name: Compile pipeline
-        working-directory: ./pipeline
-        shell: bash
-        run: |
-          export PIPELINE_IMAGE=kind-registry:5000/fraud-detection-e2e-demo-pipeline-ci:latest
-          export DATA_PREPARATION_IMAGE=kind-registry:5000/fraud-detection-e2e-demo-data-preparation-ci:latest
-          export FEATURE_ENGINEERING_IMAGE=kind-registry:5000/fraud-detection-e2e-demo-feature-engineering-ci:latest
-          export TRAIN_IMAGE=kind-registry:5000/fraud-detection-e2e-demo-train-ci:latest
-          export REST_PREDICTOR_IMAGE=kind-registry:5000/fraud-detection-e2e-demo-rest-predictor-ci:latest
-          kfp dsl compile --py fraud-detection-e2e.py --output fraud-detection-e2e.yaml
-
-      - name: Check deployment status
-        shell: bash
-        run: kubectl get deployments -n kubeflow
+#      - name: Install Model Registry
+#        shell: bash
+#        run: kubectl apply -k "https://github.com/kubeflow/model-registry/manifests/kustomize/overlays/db?ref=v0.2.16"
+#
+#      - name: Install KServe
+#        shell: bash
+#        run: |
+#          kubectl create namespace kserve
+#          kubectl config set-context --current --namespace=kserve
+#          curl -s "https://raw.githubusercontent.com/kserve/kserve/release-0.15/hack/quick_install.sh" | bash
+#          kubectl config set-context --current --namespace=kubeflow
+#
+#      - name: Free disk space
+#        run: |
+#          sudo apt-get remove -y '^dotnet-.*' '^llvm-.*' 'php.*' '^mongodb-.*' '^mysql-.*' azure-cli google-cloud-sdk
+#          sudo apt-get autoremove -y
+#          sudo apt-get clean
+#
+#          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup
+#
+#          docker system prune -af --volumes
+#
+#      - name: Checkout code
+#        uses: actions/checkout@v4
+#
+#      - name: Set up Python
+#        uses: actions/setup-python@v5
+#        with:
+#          python-version: '3.11'
+#
+#      - name: Generate synthetic data
+#        working-directory: ./feature_engineering
+#        shell: bash
+#        run: |
+#          python -m venv venv
+#          source venv/bin/activate
+#          pip install -r requirements-linux.txt
+#          python synthetic_data_generation.py
+#          deactivate
+#
+#      - name: Build images
+#        timeout-minutes: 20
+#        shell: bash
+#        run: ./build_images.sh --target ci
+#
+#      - name: Clean Docker cache
+#        run: docker system prune -af --volumes
+#
+#      - name: Install dependencies
+#        working-directory: ./pipeline
+#        shell: bash
+#        run: pip install -r requirements-linux.txt
+#
+#      - name: Compile pipeline
+#        working-directory: ./pipeline
+#        shell: bash
+#        run: |
+#          export PIPELINE_IMAGE=kind-registry:5000/fraud-detection-e2e-demo-pipeline-ci:latest
+#          export DATA_PREPARATION_IMAGE=kind-registry:5000/fraud-detection-e2e-demo-data-preparation-ci:latest
+#          export FEATURE_ENGINEERING_IMAGE=kind-registry:5000/fraud-detection-e2e-demo-feature-engineering-ci:latest
+#          export TRAIN_IMAGE=kind-registry:5000/fraud-detection-e2e-demo-train-ci:latest
+#          export REST_PREDICTOR_IMAGE=kind-registry:5000/fraud-detection-e2e-demo-rest-predictor-ci:latest
+#          kfp dsl compile --py fraud-detection-e2e.py --output fraud-detection-e2e.yaml
+#
+#      - name: Check deployment status
+#        shell: bash
+#        run: kubectl get deployments -n kubeflow
 
       - name: Check problematic pods
         shell: bash
         run: |
           kubectl get pods -n kubeflow | grep -v Running
 
-      - name: Wait for KFP to be deployed
-        timeout-minutes: 26
+      - name: Collect pod logs and events
         shell: bash
         run: |
-          start_time=$(date +%s)
-          timeout_seconds=$((25 * 60))
-          check_interval=60  # Check every minute
-          
-          while true; do
-            current_time=$(date +%s)
-            elapsed=$((current_time - start_time))
-            
-            if [ $elapsed -ge $timeout_seconds ]; then
-              echo "Timeout reached. The following deployments failed to become available:"
-              kubectl get deployments -n kubeflow -o custom-columns=NAME:.metadata.name,AVAILABLE:.status.availableReplicas,READY:.status.readyReplicas,TOTAL:.status.replicas | grep -v -E '[1-9]+/[1-9]+'
-              exit 1
-            fi
-            
-            # Check if all deployments are available
-            not_available=$(kubectl get deployments -n kubeflow -o jsonpath='{.items[?(@.status.availableReplicas<@.status.replicas)].metadata.name}')
-            
-            if [ -z "$not_available" ]; then
-              echo "All deployments are available!"
-              kubectl get pods -n kubeflow
-              break
-            else
-              echo "Waiting for deployments to become available ($(($timeout_seconds - $elapsed))s remaining):"
-              echo "$not_available"
-              
-              # For long-running issues, get more details about problematic deployments
-              if [ $((elapsed % 300)) -eq 0 ]; then  # Every 5 minutes
-                echo "Detailed status of problematic deployments:"
-                for deploy in $not_available; do
-                  echo "==== Pods for deployment $deploy ===="
-                  kubectl get pods -n kubeflow -l app=$deploy
-                done
-              fi
-            fi
-            
-            sleep $check_interval
+          echo "=== Pod Events ==="
+          kubectl get events -n kubeflow --sort-by='.lastTimestamp'
+
+          echo -e "\n=== Pod Logs ==="
+          for pod in $(kubectl get pods -n kubeflow -o name); do
+            echo -e "\n--- Logs for $pod ---"
+            kubectl logs $pod -n kubeflow --all-containers --tail=100 || true
           done
+      
 
-      - name: Adjust RBAC policies
-        shell: bash
-        run: kubectl apply -k ./manifests -n kubeflow
 
-      - name: Forward MinIO port
-        shell: bash
-        run: kubectl port-forward --namespace kubeflow svc/minio-service 9000:9000 &
-
-      - name: Forward KFP API port
-        shell: bash
-        run: kubectl port-forward --namespace kubeflow svc/ml-pipeline 8888:8888 &
-
-      - name: Upload datasets to MinIO
-        shell: bash
-        run: |
-          export PATH=$PATH:$HOME/minio-binaries/
-          
-          # Configure MinIO Client
-          mc alias set local http://localhost:9000 minio minio123
-          
-          # Create directory structure
-          mc mb local/mlpipeline/artifacts/feature_repo/data/input --p
-          
-          # Upload data files
-          mc cp \
-            feature_engineering/feature_repo/data/input/raw_transaction_datasource.csv \
-            feature_engineering/feature_repo/data/input/test.csv \
-            feature_engineering/feature_repo/data/input/train.csv \
-            feature_engineering/feature_repo/data/input/validate.csv \
-            local/mlpipeline/artifacts/feature_repo/data/input/
-          
-          # Upload feature store configuration
-          mc cp \
-            feature_engineering/feature_repo/feature_store.yaml \
-            local/mlpipeline/artifacts/feature_repo/
-          
-          # Verify the upload (optional)
-          mc ls --recursive local/mlpipeline/artifacts/
-
-      - name: Remove MinIO client
-        shell: bash
-        run: rm -rf $HOME/minio-binaries
-
-      - name: Remove Helm
-        shell: bash
-        run: |
-          sudo apt-get remove -y helm
-          sudo rm /etc/apt/sources.list.d/helm-stable-debian.list
-          sudo rm /usr/share/keyrings/helm.gpg
-
-      - name: Upload pipeline
-        timeout-minutes: 16
-        working-directory: ./pipeline
-        shell: python {0}
-        run: |
-          import sys, kfp
-          client = kfp.Client()
-          run = client.create_run_from_pipeline_package('fraud-detection-e2e.yaml', experiment_name='my-experiment')
-          result = run.wait_for_run_completion(900)
-          sys.exit(0 if result.state.lower() == 'succeeded' else 1)
-
-      - name: Forward the inference port
-        shell: bash
-        run: kubectl -n kubeflow get pods -l serving.kserve.io/inferenceservice=fraud-detection -o jsonpath="{.items[0].metadata.name}" | xargs -I {} kubectl port-forward -n kubeflow pod/{} 8081:8080
-
-      - name: Run an inference
-        shell: bash
-        run: |
-          curl -i -X POST http://localhost:8081/v1/models/onnx-model:predict -H "Content-Type: application/json" -d '{"instances": [[50.0, 5.0, 0.0, 0.0, 1.0]]}'
+#      - name: Wait for KFP to be deployed
+#        timeout-minutes: 26
+#        shell: bash
+#        run: |
+#          start_time=$(date +%s)
+#          timeout_seconds=$((25 * 60))
+#          check_interval=60  # Check every minute
+#          
+#          while true; do
+#            current_time=$(date +%s)
+#            elapsed=$((current_time - start_time))
+#            
+#            if [ $elapsed -ge $timeout_seconds ]; then
+#              echo "Timeout reached. The following deployments failed to become available:"
+#              kubectl get deployments -n kubeflow -o custom-columns=NAME:.metadata.name,AVAILABLE:.status.availableReplicas,READY:.status.readyReplicas,TOTAL:.status.replicas | grep -v -E '[1-9]+/[1-9]+'
+#              exit 1
+#            fi
+#            
+#            # Check if all deployments are available
+#            not_available=$(kubectl get deployments -n kubeflow -o jsonpath='{.items[?(@.status.availableReplicas<@.status.replicas)].metadata.name}')
+#            
+#            if [ -z "$not_available" ]; then
+#              echo "All deployments are available!"
+#              kubectl get pods -n kubeflow
+#              break
+#            else
+#              echo "Waiting for deployments to become available ($(($timeout_seconds - $elapsed))s remaining):"
+#              echo "$not_available"
+#              
+#              # For long-running issues, get more details about problematic deployments
+#              if [ $((elapsed % 300)) -eq 0 ]; then  # Every 5 minutes
+#                echo "Detailed status of problematic deployments:"
+#                for deploy in $not_available; do
+#                  echo "==== Pods for deployment $deploy ===="
+#                  kubectl get pods -n kubeflow -l app=$deploy
+#                done
+#              fi
+#            fi
+#            
+#            sleep $check_interval
+#          done
+#
+#      - name: Adjust RBAC policies
+#        shell: bash
+#        run: kubectl apply -k ./manifests -n kubeflow
+#
+#      - name: Forward MinIO port
+#        shell: bash
+#        run: kubectl port-forward --namespace kubeflow svc/minio-service 9000:9000 &
+#
+#      - name: Forward KFP API port
+#        shell: bash
+#        run: kubectl port-forward --namespace kubeflow svc/ml-pipeline 8888:8888 &
+#
+#      - name: Upload datasets to MinIO
+#        shell: bash
+#        run: |
+#          export PATH=$PATH:$HOME/minio-binaries/
+#          
+#          # Configure MinIO Client
+#          mc alias set local http://localhost:9000 minio minio123
+#          
+#          # Create directory structure
+#          mc mb local/mlpipeline/artifacts/feature_repo/data/input --p
+#          
+#          # Upload data files
+#          mc cp \
+#            feature_engineering/feature_repo/data/input/raw_transaction_datasource.csv \
+#            feature_engineering/feature_repo/data/input/test.csv \
+#            feature_engineering/feature_repo/data/input/train.csv \
+#            feature_engineering/feature_repo/data/input/validate.csv \
+#            local/mlpipeline/artifacts/feature_repo/data/input/
+#          
+#          # Upload feature store configuration
+#          mc cp \
+#            feature_engineering/feature_repo/feature_store.yaml \
+#            local/mlpipeline/artifacts/feature_repo/
+#          
+#          # Verify the upload (optional)
+#          mc ls --recursive local/mlpipeline/artifacts/
+#
+#      - name: Remove MinIO client
+#        shell: bash
+#        run: rm -rf $HOME/minio-binaries
+#
+#      - name: Remove Helm
+#        shell: bash
+#        run: |
+#          sudo apt-get remove -y helm
+#          sudo rm /etc/apt/sources.list.d/helm-stable-debian.list
+#          sudo rm /usr/share/keyrings/helm.gpg
+#
+#      - name: Upload pipeline
+#        timeout-minutes: 16
+#        working-directory: ./pipeline
+#        shell: python {0}
+#        run: |
+#          import sys, kfp
+#          client = kfp.Client()
+#          run = client.create_run_from_pipeline_package('fraud-detection-e2e.yaml', experiment_name='my-experiment')
+#          result = run.wait_for_run_completion(900)
+#          sys.exit(0 if result.state.lower() == 'succeeded' else 1)
+#
+#      - name: Forward the inference port
+#        shell: bash
+#        run: kubectl -n kubeflow get pods -l serving.kserve.io/inferenceservice=fraud-detection -o jsonpath="{.items[0].metadata.name}" | xargs -I {} kubectl port-forward -n kubeflow pod/{} 8081:8080
+#
+#      - name: Run an inference
+#        shell: bash
+#        run: |
+#          curl -i -X POST http://localhost:8081/v1/models/onnx-model:predict -H "Content-Type: application/json" -d '{"instances": [[50.0, 5.0, 0.0, 0.0, 1.0]]}'
