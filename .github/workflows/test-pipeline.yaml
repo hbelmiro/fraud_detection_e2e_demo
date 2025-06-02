@@ -55,7 +55,7 @@ jobs:
 
       - name: Install Model Registry
         shell: bash
-        run: kubectl apply -k "https://github.com/kubeflow/model-registry/manifests/kustomize/overlays/db?ref=v0.2.16"
+        run: kubectl apply -k ".github/custom-model-registry/overlays/mysql-fix"
 
 #
 #      - name: Install Spark Operator
@@ -156,7 +156,7 @@ jobs:
             echo -e "\n--- Logs for $pod ---"
             kubectl logs $pod -n kubeflow --all-containers --tail=100 || true
           done
-      
+
 
 
 #      - name: Wait for KFP to be deployed
