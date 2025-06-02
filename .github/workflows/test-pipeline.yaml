@@ -131,6 +131,10 @@ jobs:
 #        shell: bash
 #        run: kubectl get deployments -n kubeflow
 
+      - name: Wait for resources to stabilize
+        shell: bash
+        run: sleep 120
+
       - name: Check problematic pods
         shell: bash
         run: |
