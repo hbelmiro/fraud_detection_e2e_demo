@@ -49,6 +49,9 @@ jobs:
           kubectl wait --for condition=established --timeout=60s crd/applications.app.k8s.io
           kubectl apply -k "github.com/kubeflow/pipelines/manifests/kustomize/env/dev?ref=$PIPELINE_VERSION"
 
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Wait for resources to stabilize
         shell: bash
         run: sleep 120
@@ -90,8 +93,6 @@ jobs:
 #
 #          docker system prune -af --volumes
 #
-#      - name: Checkout code
-#        uses: actions/checkout@v4
 #
 #      - name: Set up Python
 #        uses: actions/setup-python@v5
