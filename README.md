@@ -4,6 +4,14 @@ This is a work in progress.
 
 ![pipeline.png](pipeline.png)
 
+## How to navigate the code
+
+The main entry point for understanding this project is [fraud-detection-e2e.py](pipeline/fraud-detection-e2e.py).
+
+The container image for the pipeline is defined in the `Containerfile` located in the same directory as the pipeline definition.
+
+Other images used in the pipeline have their code in corresponding directories. For example, the `DATA_PREPARATION_IMAGE` is defined in the [data_preparation](data_preparation) directory, and similarly for other components.
+
 ## Create a Kind cluster
 
 ```shell
