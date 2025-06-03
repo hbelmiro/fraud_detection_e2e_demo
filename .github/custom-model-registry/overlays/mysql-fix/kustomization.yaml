@@ -4,5 +4,5 @@ kind: Kustomization
 resources:
   - https://github.com/kubeflow/model-registry//manifests/kustomize/overlays/db?ref=v0.2.16
 
-patchesStrategicMerge:
-  - mysql-patch.yaml
+patches:
+  - path: mysql-patch.yaml
