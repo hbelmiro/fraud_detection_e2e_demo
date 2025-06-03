@@ -1,5 +1,9 @@
 This is a work in progress.
 
+## Pipeline
+
+![pipeline.png](pipeline.png)
+
 ## Create a Kind cluster
 
 ```shell
