@@ -12,9 +12,6 @@ jobs:
     timeout-minutes: 60
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
 #      - name: Install MinIO client
 #        run: |
 #          curl https://dl.min.io/client/mc/release/linux-amd64/mc \
@@ -58,7 +55,7 @@ jobs:
 
       - name: Install Model Registry
         shell: bash
-        run: kubectl apply -k ".github/custom-model-registry/overlays/mysql-fix"
+        run: kubectl apply -k "https://github.com/kubeflow/model-registry/manifests/kustomize/overlays/db?ref=v0.2.16"
 
 #
 #      - name: Install Spark Operator
@@ -93,6 +90,8 @@ jobs:
 #
 #          docker system prune -af --volumes
 #
+#      - name: Checkout code
+#        uses: actions/checkout@v4
 #
 #      - name: Set up Python
 #        uses: actions/setup-python@v5
@@ -157,7 +156,7 @@ jobs:
             echo -e "\n--- Logs for $pod ---"
             kubectl logs $pod -n kubeflow --all-containers --tail=100 || true
           done
-
+      
 
 
 #      - name: Wait for KFP to be deployed
