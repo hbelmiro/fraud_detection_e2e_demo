@@ -58,7 +58,16 @@ jobs:
 
       - name: Install Model Registry
         shell: bash
-        run: kubectl apply -k "./.github/custom-model-registry/overlays/mysql-fix"
+        run: |
+          kubectl apply -k "https://github.com/kubeflow/model-registry/manifests/kustomize/overlays/db?ref=v0.2.16"
+          
+          kubectl patch deployment model-registry-db -n kubeflow --type=json -p='[
+            {
+              "op": "add", 
+              "path": "/spec/template/spec/containers/0/securityContext", 
+              "value": {"capabilities": {"add": ["SYS_NICE"]}}
+            }
+          ]'
 
 #
 #      - name: Install Spark Operator
