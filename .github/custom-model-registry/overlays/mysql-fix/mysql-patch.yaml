@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: model-registry-mysql
+  name: model-registry-db
   namespace: kubeflow
 spec:
   template:
