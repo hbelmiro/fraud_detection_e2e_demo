@@ -7,9 +7,11 @@ spec:
   template:
     spec:
       containers:
-      - name: mysql
-        image: mysql:8.0.39
-        securityContext:
-          capabilities:
-            add:
-            - SYS_NICE
+        - name: mysql
+          image: mysql:8.0.39
+          args:
+            - --default-authentication-plugin=mysql_native_password
+          securityContext:
+            capabilities:
+              add:
+                - SYS_NICE
