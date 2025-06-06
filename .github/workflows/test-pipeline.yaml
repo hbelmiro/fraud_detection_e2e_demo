@@ -47,7 +47,7 @@ jobs:
           export KFP_COMMIT="ea207310601ffaf807b148a79a9ddcb8d4812886"
           kubectl apply -k "github.com/kubeflow/pipelines/manifests/kustomize/cluster-scoped-resources?ref=${KFP_COMMIT}"
           kubectl wait --for condition=established --timeout=60s crd/applications.app.k8s.io
-          kubectl apply -k "github.com/kubeflow/pipelines/manifests/kustomize/env/dev?ref=${KFP_COMMIT}"
+          kubectl apply -k "github.com/kubeflow/pipelines/manifests/kustomize/env/platform-agnostic?ref=${KFP_COMMIT}"
 
       - name: Checkout code
         uses: actions/checkout@v4
