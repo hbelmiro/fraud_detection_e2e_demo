@@ -53,6 +53,8 @@ components:
     executorLabel: exec-serve
     inputDefinitions:
       parameters:
+        job_id:
+          parameterType: STRING
         model_name:
           parameterType: STRING
         model_version_name:
@@ -298,19 +300,20 @@ deploymentSpec:
 
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef serve(model_name: str, model_version_name: str, rest_predictor_image:\
-          \ str):\n    import logging\n    import kserve\n    from kubernetes import\
-          \ client\n    from kubernetes.client import V1Container\n    from model_registry\
-          \ import ModelRegistry\n\n    logging.info(\"serving model: {}\".format(model_name))\n\
-          \    logging.info(\"model_version: {}\".format(model_version_name))\n\n\
-          \    registry = ModelRegistry(\n        server_address=\"http://model-registry-service.kubeflow.svc.cluster.local\"\
-          ,\n        port=8080,\n        author=\"fraud-detection-e2e-pipeline\",\n\
-          \        user_token=\"non-used\",  # Just to avoid a warning\n        is_secure=False\n\
-          \    )\n\n    model = registry.get_registered_model(model_name)\n    model_version\
+          \ *\n\ndef serve(model_name: str, model_version_name: str, job_id: str,\
+          \ rest_predictor_image: str):\n    import logging\n    import kserve\n \
+          \   from kubernetes import client\n    from kubernetes.client import V1Container\n\
+          \    from model_registry import ModelRegistry\n\n    logging.info(\"serving\
+          \ model: {}\".format(model_name))\n    logging.info(\"model_version: {}\"\
+          .format(model_version_name))\n\n    registry = ModelRegistry(\n        server_address=\"\
+          http://model-registry-service.kubeflow.svc.cluster.local\",\n        port=8080,\n\
+          \        author=\"fraud-detection-e2e-pipeline\",\n        user_token=\"\
+          non-used\",  # Just to avoid a warning\n        is_secure=False\n    )\n\
+          \n    model = registry.get_registered_model(model_name)\n    model_version\
           \ = registry.get_model_version(model_name, model_version_name)\n\n    inference_service\
           \ = kserve.V1beta1InferenceService(\n        api_version=kserve.constants.KSERVE_GROUP\
           \ + \"/v1beta1\",\n        kind=\"InferenceService\",\n        metadata=client.V1ObjectMeta(\n\
-          \            name=model_name,\n            namespace=kserve.utils.get_default_target_namespace(),\n\
+          \            name=model_name + \"-\" + job_id,\n            namespace=kserve.utils.get_default_target_namespace(),\n\
           \            labels={\n                \"modelregistry/registered-model-id\"\
           : model.id,\n                \"modelregistry/model-version-id\": model_version.id\n\
           \            },\n        ),\n        spec=kserve.V1beta1InferenceServiceSpec(\n\
@@ -403,6 +406,9 @@ root:
         - register-model
         inputs:
           parameters:
+            job_id:
+              runtimeValue:
+                constant: '{{$.pipeline_job_uuid}}'
             model_name:
               taskOutputParameter:
                 outputParameterKey: model_name

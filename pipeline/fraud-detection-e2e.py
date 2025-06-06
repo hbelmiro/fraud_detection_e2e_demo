@@ -259,7 +259,7 @@ def register_model(model: Input[Model]) -> NamedTuple('outputs', model_name=str,
 
 
 @dsl.component(base_image=PIPELINE_IMAGE)
-def serve(model_name: str, model_version_name: str, rest_predictor_image: str):
+def serve(model_name: str, model_version_name: str, job_id: str, rest_predictor_image: str):
     import logging
     import kserve
     from kubernetes import client
@@ -284,7 +284,7 @@ def serve(model_name: str, model_version_name: str, rest_predictor_image: str):
         api_version=kserve.constants.KSERVE_GROUP + "/v1beta1",
         kind="InferenceService",
         metadata=client.V1ObjectMeta(
-            name=model_name,
+            name=model_name + "-" + job_id,
             namespace=kserve.utils.get_default_target_namespace(),
             labels={
                 "modelregistry/registered-model-id": model.id,
@@ -331,5 +331,6 @@ def fraud_detection_e2e_pipeline():
 
     serve_task = serve(model_name=register_model_task.outputs["model_name"],
                        model_version_name=register_model_task.outputs["model_version"],
+                       job_id=kfp.dsl.PIPELINE_JOB_ID_PLACEHOLDER,
                        rest_predictor_image=REST_PREDICTOR_IMAGE)
     serve_task.set_caching_options(False)
