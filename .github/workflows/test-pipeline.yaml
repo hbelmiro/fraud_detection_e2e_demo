@@ -60,14 +60,45 @@ jobs:
         shell: bash
         run: |
           kubectl apply -k "https://github.com/kubeflow/model-registry/manifests/kustomize/overlays/db?ref=v0.2.16"
-          
-#          kubectl patch deployment model-registry-db -n kubeflow --type=json -p='[
-#            {
-#              "op": "add",
-#              "path": "/spec/template/spec/containers/0/securityContext",
-#              "value": {"capabilities": {"add": ["SYS_NICE"]}}
-#            }
-#          ]'
+
+          # Create MySQL config ConfigMap to use mysql_native_password authentication
+          cat <<EOF | kubectl apply -f -
+          apiVersion: v1
+          kind: ConfigMap
+          metadata:
+            name: mysql-config
+            namespace: kubeflow
+          data:
+            my.cnf: |
+              [mysqld]
+              default_authentication_plugin=mysql_native_password
+          EOF
+
+          # Wait for the model-registry-db deployment to be created
+          sleep 10
+
+          # Add SYS_NICE capability to the model-registry-db deployment
+          kubectl patch deployment model-registry-db -n kubeflow --type=json -p='[
+            {
+              "op": "add",
+              "path": "/spec/template/spec/containers/0/securityContext",
+              "value": {"capabilities": {"add": ["SYS_NICE"]}}
+            }
+          ]'
+
+          # Mount the MySQL config ConfigMap to the model-registry-db deployment
+          kubectl patch deployment model-registry-db -n kubeflow --type=json -p='[
+            {
+              "op": "add",
+              "path": "/spec/template/spec/volumes/-",
+              "value": {"name": "mysql-config", "configMap": {"name": "mysql-config"}}
+            },
+            {
+              "op": "add",
+              "path": "/spec/template/spec/containers/0/volumeMounts/-",
+              "value": {"name": "mysql-config", "mountPath": "/etc/mysql/conf.d"}
+            }
+          ]'
 
 #
 #      - name: Install Spark Operator
@@ -166,7 +197,7 @@ jobs:
             echo -e "\n--- Logs for $pod ---"
             kubectl logs $pod -n kubeflow --all-containers --tail=100 || true
           done
-      
+
 
 
 #      - name: Wait for KFP to be deployed
