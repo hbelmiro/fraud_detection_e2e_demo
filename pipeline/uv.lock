@@ -450,6 +450,11 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/8e/95/e6b457dc45581460478b94133b429d42de7a61a2d7e3f7d99496e11d768e/feast-0.47.0-py2.py3-none-any.whl", hash = "sha256:600ca26e3b756a69be0dfa9f61c9c80458b78187a9f34f26410da4d2e93d05b4", size = 5482486 },
 ]
 
+[package.optional-dependencies]
+spark = [
+    { name = "pyspark" },
+]
+
 [[package]]
 name = "frozenlist"
 version = "1.6.0"
@@ -1397,26 +1402,24 @@ name = "pipeline"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
-    { name = "feast" },
+    { name = "feast", extra = ["spark"] },
     { name = "kfp" },
     { name = "kserve" },
     { name = "kubernetes" },
     { name = "minio" },
     { name = "model-registry" },
     { name = "pandas" },
-    { name = "pyspark" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "feast" },
+    { name = "feast", extras = ["spark"] },
     { name = "kfp", specifier = "==2.11.0" },
     { name = "kserve", specifier = "==0.15.0" },
     { name = "kubernetes" },
     { name = "minio" },
     { name = "model-registry", specifier = "==0.2.16" },
     { name = "pandas" },
-    { name = "pyspark" },
 ]
 
 [[package]]

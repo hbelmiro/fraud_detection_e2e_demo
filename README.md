@@ -87,44 +87,47 @@ kubectl -n kubeflow get pods -l serving.kserve.io/inferenceservice=fraud-detecti
 
 With the port-forward active, test the deployed model:
 
-#### Example 1: Fraudulent Transaction
+#### Example 1: Checking a User with Potential Fraud
 
 ```shell
-curl -i -X POST http://localhost:8081/v1/models/onnx-model:predict -H "Content-Type: application/json" -d '{"instances": [[50.0, 5.0, 0.0, 0.0, 1.0]]}'
+curl -i -X POST http://localhost:8081/v1/models/onnx-model:predict -H "Content-Type: application/json" -d '{"user_id": "user_0"}'
 ```
 
-The input values in the request represent the following features:
-1. `50.0` - distance_from_last_transaction: Distance in miles from the last transaction location
-2. `5.0` - ratio_to_median_purchase_price: Ratio of the current purchase price to the median purchase price
-3. `0.0` - used_chip: Whether the transaction used a chip (0.0 = No, 1.0 = Yes)
-4. `0.0` - used_pin_number: Whether the transaction used a PIN number (0.0 = No, 1.0 = Yes)
-5. `1.0` - online_order: Whether the transaction was an online order (0.0 = No, 1.0 = Yes)
+The request only contains the user ID. The predictor will:
+1. Retrieve the user's features from Feast's online store
+2. Use those features for model inference
+3. Return both the prediction and the features used
 
 Expected output:
 
 ```
 HTTP/1.1 200 OK
-date: Mon, 07 Apr 2025 21:34:03 GMT
+date: Wed, 11 Jun 2025 17:12:25 GMT
 server: uvicorn
-content-length: 38
+content-length: 56
 content-type: application/json
 
-{"predictions":[[0.9998821020126343]]}
+{"user_id":"user_0","prediction":[[0.8173668384552002]]}
 ```
 
-The prediction value close to 1.0 indicates a high probability of fraud for the given transaction.
+The prediction value close to 1.0 indicates a high probability of fraud for the given user.
 
-#### Example 2: Non-Fraudulent Transaction
+#### Example 2: Checking a User with Likely Non-Fraudulent Activity
 
 ```shell
-curl -i -X POST http://localhost:8081/v1/models/onnx-model:predict -H "Content-Type: application/json" -d '{"instances": [[5.0, 1.0, 1.0, 1.0, 0.0]]}'
+curl -i -X POST http://localhost:8081/v1/models/onnx-model:predict -H "Content-Type: application/json" -d '{"user_id": "user_1"}'
 ```
 
-The input values in this request represent a likely non-fraudulent transaction:
-1. `5.0` - distance_from_last_transaction: Shorter distance from the last transaction location
-2. `1.0` - ratio_to_median_purchase_price: Purchase price close to the median (typical spending pattern)
-3. `1.0` - used_chip: Transaction used a chip (more secure)
-4. `1.0` - used_pin_number: Transaction used a PIN number (more secure)
-5. `0.0` - online_order: In-person transaction (not an online order)
+Expected output:
 
-Expected output would show a prediction value close to 0.0, indicating a low probability of fraud.
+```
+HTTP/1.1 200 OK
+date: Wed, 11 Jun 2025 17:12:28 GMT
+server: uvicorn
+content-length: 57
+content-type: application/json
+
+{"user_id":"user_1","prediction":[[0.18598723411560059]]}
+```
+
+The prediction value close to 0.0 indicates a low probability of fraud for the given user.

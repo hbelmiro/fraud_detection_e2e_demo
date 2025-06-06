@@ -8,5 +8,8 @@ dependencies = [
     "model-registry==0.2.16",
     "numpy",
     "onnxruntime",
-    "boto3"
+    "boto3",
+    "feast",
+    "pandas",
+    "pyspark"
 ]

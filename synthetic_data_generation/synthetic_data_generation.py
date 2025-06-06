@@ -93,8 +93,8 @@ for date_col in ["created", "updated"]:
 
 print("generating transaction level data...")
 user_purchase_history = generate_random_transactions(
-    users_df=df[df["repeat_retailer"] == 1].reset_index(drop=True),
-    max_transactions=5,
+    users_df=df.reset_index(drop=True),
+    max_transactions=35,
     max_days_back=365,
 )
 

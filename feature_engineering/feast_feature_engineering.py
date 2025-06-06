@@ -2,6 +2,7 @@ import argparse
 import os
 import subprocess
 import sys
+from datetime import datetime, timedelta
 
 from minio import Minio, S3Error
 
@@ -16,8 +17,8 @@ REMOTE_INPUT_DIR = REMOTE_DATA_DIR + "input/"
 REMOTE_OUTPUT_DIR = REMOTE_DATA_DIR + "output/"
 
 
-def feast_apply(feature_repo_path: str):
-    print("Will run feast apply in {}".format(feature_repo_path))
+def feast_apply(feature_repo_path: str) -> bool:
+    print(f"Will run feast apply in {feature_repo_path}")
     try:
         result = subprocess.run(
             ["feast", "apply"],
@@ -29,18 +30,40 @@ def feast_apply(feature_repo_path: str):
         print("STDOUT:", result.stdout)
         print("STDERR:", result.stderr)
         print("Feast applied successfully!")
-
-        with open("/tmp/kfp/outputs/features_ok", "w") as f:
-            f.write("true")
+        return True
     except subprocess.CalledProcessError as e:
         print(f"Error executing 'feast apply': {e}")
         print("STDOUT:", e.stdout)
         print("STDERR:", e.stderr)
+        return False
 
-        with open("/tmp/kfp/outputs/features_ok", "w") as f:
-            f.write("false")
 
-        sys.exit(e.returncode)
+def feast_materialize(feature_repo_path: str) -> bool:
+    print(f"Will run feast materialize in {feature_repo_path}")
+
+    # Get current time for end_date
+    end_date = datetime.utcnow().isoformat()
+
+    # Set start_date to 1 year ago (or adjust as needed based on your data)
+    start_date = (datetime.utcnow() - timedelta(days=365)).isoformat()
+
+    try:
+        result = subprocess.run(
+            ["feast", "materialize", start_date, end_date],
+            cwd=feature_repo_path,
+            check=True,
+            capture_output=True,
+            text=True
+        )
+        print("STDOUT:", result.stdout)
+        print("STDERR:", result.stderr)
+        print("Feast materialization completed successfully!")
+        return True
+    except subprocess.CalledProcessError as e:
+        print(f"Error executing 'feast materialize': {e}")
+        print("STDOUT:", e.stdout)
+        print("STDERR:", e.stderr)
+        return False
 
 
 def upload_directory(remote_path, local_dir):
@@ -90,7 +113,7 @@ def download_artifacts(directory_path, dest):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Run 'feast apply' in a specified feature repository path.")
+    parser = argparse.ArgumentParser(description="Run feature engineering with Feast")
     parser.add_argument("--feature-repo-path", required=True, help="Path to the feature repository")
     args = parser.parse_args()
 
@@ -103,9 +126,34 @@ def main():
 
     os.makedirs(local_output_dir, exist_ok=True)
 
-    feast_apply(args.feature_repo_path)
+    apply_success = feast_apply(args.feature_repo_path)
+    if not apply_success:
+        with open("/tmp/kfp/outputs/features_ok", "w") as f:
+            f.write("false")
+        sys.exit(1)
+
+    materialize_success = feast_materialize(args.feature_repo_path)
+
+    # Print the contents of the output directory to verify the online store DB exists
+    print("Contents of output directory after materialization:")
+    for root, dirs, files in os.walk(local_output_dir):
+        for file in files:
+            print(f"  {os.path.join(root, file)}")
+
+    # Ensure the online store DB exists
+    online_store_db = os.path.join(local_output_dir, "online_store.db")
+    if os.path.exists(online_store_db):
+        print(f"Online store database exists at {online_store_db}")
+    else:
+        raise RuntimeError(f"WARNING: Online store database not found at {online_store_db}")
 
     upload_directory(REMOTE_OUTPUT_DIR, local_output_dir)
+
+    with open("/tmp/kfp/outputs/features_ok", "w") as f:
+        f.write("true" if apply_success and materialize_success else "false")
+
+    if not (apply_success and materialize_success):
+        sys.exit(1)
 
 
 if __name__ == '__main__':

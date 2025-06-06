@@ -28,8 +28,8 @@ USER spark
 COPY feature_repo/repo_definition.py $APP_HOME/feature_repo/
 COPY feature_repo/feature_store.yaml $APP_HOME/feature_repo/
 
-COPY feast_apply.py $APP_HOME
+COPY feast_feature_engineering.py $APP_HOME
 
 WORKDIR $APP_HOME/feature_repo
 
-CMD ["sh", "-c", "python feast_apply.py"]
+CMD ["sh", "-c", "python /app/feast_feature_engineering.py --feature-repo-path=/app/feature_repo"]

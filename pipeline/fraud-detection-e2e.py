@@ -101,12 +101,12 @@ def prepare_data(job_id: str, data_preparation_image: str) -> bool:
 
 
 @dsl.container_component
-def create_features(data_preparation_ok: bool, features_ok: dsl.OutputPath(str)):
+def feature_engineering(data_preparation_ok: bool, features_ok: dsl.OutputPath(str)):
     if not data_preparation_ok:
         raise ValueError("data preparation not ok")
 
     return dsl.ContainerSpec(image=FEATURE_ENGINEERING_IMAGE,
-                             command=["sh", "-c", "python /app/feast_apply.py --feature-repo-path=/app/feature_repo"],
+                             command=["sh", "-c", "python /app/feast_feature_engineering.py --feature-repo-path=/app/feature_repo"],
                              args=[features_ok])
 
 
@@ -317,10 +317,10 @@ def fraud_detection_e2e_pipeline():
                                      data_preparation_image=DATA_PREPARATION_IMAGE)
     prepare_data_task.set_caching_options(False)
 
-    create_features_task = create_features(data_preparation_ok=prepare_data_task.output)
-    create_features_task.set_caching_options(False)
+    feature_engineering_task = feature_engineering(data_preparation_ok=prepare_data_task.output)
+    feature_engineering_task.set_caching_options(False)
 
-    retrieve_features_task = retrieve_features(features_ok=create_features_task.output)
+    retrieve_features_task = retrieve_features(features_ok=feature_engineering_task.output)
     retrieve_features_task.set_caching_options(False)
 
     train_model_task = train_model(dataset=retrieve_features_task.outputs['output_df'])
