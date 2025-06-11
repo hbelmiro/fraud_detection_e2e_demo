@@ -27,7 +27,6 @@ USER spark
 
 COPY feature_repo/repo_definition.py $APP_HOME/feature_repo/
 COPY feature_repo/feature_store.yaml $APP_HOME/feature_repo/
-
 COPY feast_feature_engineering.py $APP_HOME
 
 WORKDIR $APP_HOME/feature_repo

@@ -194,7 +194,7 @@ psutil==5.9.8
     # via
     #   feast
     #   kserve
-py4j==0.10.9.9
+py4j==0.10.9.7
     # via pyspark
 pyarrow==18.0.0
     # via
@@ -218,8 +218,10 @@ pygments==2.19.1
     # via feast
 pyjwt==2.10.1
     # via feast
-pyspark==4.0.0
-    # via rest-predictor (pyproject.toml)
+pyspark==3.5.6
+    # via
+    #   rest-predictor (pyproject.toml)
+    #   feast
 python-dateutil==2.9.0.post0
     # via
     #   botocore

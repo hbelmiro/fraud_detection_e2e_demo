@@ -41,10 +41,7 @@ def feast_apply(feature_repo_path: str) -> bool:
 def feast_materialize(feature_repo_path: str) -> bool:
     print(f"Will run feast materialize in {feature_repo_path}")
 
-    # Get current time for end_date
     end_date = datetime.utcnow().isoformat()
-
-    # Set start_date to 1 year ago (or adjust as needed based on your data)
     start_date = (datetime.utcnow() - timedelta(days=365)).isoformat()
 
     try:
@@ -67,7 +64,6 @@ def feast_materialize(feature_repo_path: str) -> bool:
 
 
 def upload_directory(remote_path, local_dir):
-    """Upload all files from a local directory to a MinIO bucket."""
     client = Minio(
         MINIO_ENDPOINT.replace("http://", "").replace("https://", ""),
         access_key=MINIO_ACCESS_KEY,
@@ -78,14 +74,13 @@ def upload_directory(remote_path, local_dir):
     for root, dirs, files in os.walk(local_dir):
         for file in files:
             local_file_path = os.path.join(root, file)
-            # Create the object path by prefixing the directory path
             object_path = os.path.join(remote_path, os.path.relpath(local_file_path, local_dir))
 
             try:
                 print(f"Uploading: {local_file_path} -> {object_path}")
                 client.fput_object(MINIO_BUCKET, object_path, local_file_path)
             except S3Error as e:
-                print(f"Failed to upload {local_file_path}: {e}")
+                raise RuntimeError(f"Failed to upload {local_file_path}: {e}")
 
     print("Upload complete.")
 
@@ -134,13 +129,11 @@ def main():
 
     materialize_success = feast_materialize(args.feature_repo_path)
 
-    # Print the contents of the output directory to verify the online store DB exists
     print("Contents of output directory after materialization:")
     for root, dirs, files in os.walk(local_output_dir):
         for file in files:
             print(f"  {os.path.join(root, file)}")
 
-    # Ensure the online store DB exists
     online_store_db = os.path.join(local_output_dir, "online_store.db")
     if os.path.exists(online_store_db):
         print(f"Online store database exists at {online_store_db}")

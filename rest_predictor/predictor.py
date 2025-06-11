@@ -1,13 +1,12 @@
 import argparse
 import os
-from typing import Dict, Union, List
+from typing import Dict
 from urllib.parse import urlparse
 
 import boto3
 import kserve
 import numpy as np
 import onnxruntime as ort
-import pandas as pd
 from botocore.client import Config
 from feast import FeatureStore
 from kserve import InferRequest

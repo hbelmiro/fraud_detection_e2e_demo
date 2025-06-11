@@ -9,7 +9,7 @@ dependencies = [
     "numpy",
     "onnxruntime",
     "boto3",
-    "feast",
+    "feast[spark]",
     "pandas",
     "pyspark"
 ]

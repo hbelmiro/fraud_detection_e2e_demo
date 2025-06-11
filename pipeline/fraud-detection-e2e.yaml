@@ -254,10 +254,9 @@ deploymentSpec:
           \         ],\n        ).to_df()\n\n        return _features\n\n    logging.basicConfig(\n\
           \        level=logging.INFO,\n    )\n\n    logging.info(\"output_df.path:\
           \ {}\".format(output_df.path))\n\n    minio_endpoint = \"http://minio-service.kubeflow.svc.cluster.local:9000\"\
-          \n    minio_access_key = os.getenv(\"MINIO_ACCESS_KEY\")\n    minio_secret_key\
-          \ = os.getenv(\"MINIO_SECRET_KEY\")\n    minio_bucket = os.getenv(\"MINIO_BUCKET\"\
-          )\n    remote_feature_repo_dir = \"artifacts/feature_repo\"\n\n    (\n \
-          \       SparkSession.builder\n        .appName(\"FeatureEngineeringSpark\"\
+          \n    minio_access_key = \"minio\"\n    minio_secret_key = \"minio123\"\n\
+          \    minio_bucket = \"mlpipeline\"\n    remote_feature_repo_dir = \"artifacts/feature_repo\"\
+          \n\n    (\n        SparkSession.builder\n        .appName(\"FeatureEngineeringSpark\"\
           )\n        .config(\"spark.jars.ivy\", \"/app/.ivy2\")\n        .config(\"\
           spark.driver.memory\", \"1g\")\n        .config(\"spark.executor.memory\"\
           , \"1g\")\n        .config(\"spark.jars.packages\", \"org.apache.hadoop:hadoop-aws:3.3.1,com.amazonaws:aws-java-sdk-bundle:1.12.458\"\

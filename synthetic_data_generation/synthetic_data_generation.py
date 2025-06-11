@@ -10,7 +10,6 @@ import pandas as pd
 def generate_random_transactions(
         users_df: pd.DataFrame, max_transactions: int = 11, max_days_back=365
 ) -> pd.DataFrame:
-    # Predefined lists of categories and locations
     transaction_categories = [
         "Groceries",
         "Utilities",

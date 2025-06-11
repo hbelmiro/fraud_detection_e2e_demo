@@ -1,4 +1,0 @@
-{
-  "name": "my-onnx-model",
-  "implementation": "mlserver_onnx.ONNXRuntime"
-}
