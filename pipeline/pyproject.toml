@@ -9,8 +9,7 @@ dependencies = [
     "kserve==0.15.0",
     "model-registry==0.2.16",
     "minio",
-    "feast",
+    "feast[spark]",
     "pandas",
     "kubernetes",
-    "pyspark"
 ]

@@ -1,8 +1,8 @@
 # PIPELINE DEFINITION
 # Name: fraud-detection-e2e-pipeline
 components:
-  comp-create-features:
-    executorLabel: exec-create-features
+  comp-feature-engineering:
+    executorLabel: exec-feature-engineering
     inputDefinitions:
       parameters:
         data_preparation_ok:
@@ -77,14 +77,14 @@ components:
             schemaVersion: 0.0.1
 deploymentSpec:
   executors:
-    exec-create-features:
+    exec-feature-engineering:
       container:
         args:
         - '{{$.outputs.parameters[''features_ok''].output_file}}'
         command:
         - sh
         - -c
-        - python /app/feast_apply.py --feature-repo-path=/app/feature_repo
+        - python /app/feast_feature_engineering.py --feature-repo-path=/app/feature_repo
         image: quay.io/hbelmiro/fraud-detection-e2e-demo-feature-engineering:latest
     exec-prepare-data:
       container:
@@ -342,10 +342,10 @@ pipelineInfo:
 root:
   dag:
     tasks:
-      create-features:
+      feature-engineering:
         cachingOptions: {}
         componentRef:
-          name: comp-create-features
+          name: comp-feature-engineering
         dependentTasks:
         - prepare-data
         inputs:
@@ -355,7 +355,7 @@ root:
                 outputParameterKey: Output
                 producerTask: prepare-data
         taskInfo:
-          name: create-features
+          name: feature-engineering
       prepare-data:
         cachingOptions: {}
         componentRef:
@@ -389,13 +389,13 @@ root:
         componentRef:
           name: comp-retrieve-features
         dependentTasks:
-        - create-features
+        - feature-engineering
         inputs:
           parameters:
             features_ok:
               taskOutputParameter:
                 outputParameterKey: features_ok
-                producerTask: create-features
+                producerTask: feature-engineering
         taskInfo:
           name: retrieve-features
       serve:
