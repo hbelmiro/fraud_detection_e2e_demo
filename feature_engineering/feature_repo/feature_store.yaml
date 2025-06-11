@@ -1,7 +1,5 @@
 project: fraud_detection_e2e_demo
-# By default, the registry is a file (but can be turned into a more scalable SQL-backed registry)
 registry: data/output/registry.db
-# The provider primarily specifies default offline / online stores & storing the registry in a given cloud
 provider: local
 offline_store:
     type: spark
@@ -18,6 +16,5 @@ online_store:
     type: sqlite
     path: /app/feature_repo/data/output/online_store.db
 entity_key_serialization_version: 3
-# By default, no_auth for authentication and authorization, other possible values kubernetes and oidc. Refer the documentation for more details.
 auth:
     type: no_auth

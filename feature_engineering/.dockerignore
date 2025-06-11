@@ -2,7 +2,6 @@
 .venv
 *.pyc
 *.pyo
-fetched_features/
 feature_repo/.idea
 feature_repo/.DS_Store
 feature_repo/__pycache__

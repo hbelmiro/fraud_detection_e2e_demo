@@ -179,9 +179,9 @@ def retrieve_features(features_ok: str, output_df: Output[Dataset]):
     logging.info("output_df.path: {}".format(output_df.path))
 
     minio_endpoint = "http://minio-service.kubeflow.svc.cluster.local:9000"
-    minio_access_key = os.getenv("MINIO_ACCESS_KEY")
-    minio_secret_key = os.getenv("MINIO_SECRET_KEY")
-    minio_bucket = os.getenv("MINIO_BUCKET")
+    minio_access_key = "minio"
+    minio_secret_key = "minio123"
+    minio_bucket = "mlpipeline"
     remote_feature_repo_dir = "artifacts/feature_repo"
 
     (
