@@ -1,0 +1,21 @@
+name: Check uv lock
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  data-preparation-uv-lock:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check data preparation uv lock
+        uses: hbelmiro/uv-lock-check@7f6c75285b82f546db69e6dfad6742e63fceca82
+        with:
+          pyproject-path: ./data_preparation/pyproject.toml
+          requirements-path: ./data_preparation/requirements-linux.txt
+          requirements-command: uv pip compile --python-platform=linux pyproject.toml -o requirements-linux.txt
