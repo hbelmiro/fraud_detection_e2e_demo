@@ -12,6 +12,15 @@ The container image for the pipeline is defined in the `Containerfile` located i
 
 Other images used in the pipeline have their code in corresponding directories. For example, the `DATA_PREPARATION_IMAGE` is defined in the [data_preparation](data_preparation) directory, and similarly for other components.
 
+## OpenShift
+
+### Prerequisites
+
+- Red Hat OpenShift Service Mesh 3
+- Red Hat OpenShift Serverless
+- Red Hat Authorino Operator
+- Red Hat OpenShift AI
+
 ## Create a Kind cluster
 
 ```shell
