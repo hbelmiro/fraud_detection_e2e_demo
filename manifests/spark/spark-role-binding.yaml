@@ -2,14 +2,14 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: spark-rolebinding
-  namespace: kubeflow
+  namespace: fraud-detection
 subjects:
   - kind: ServiceAccount
     name: spark
-    namespace: kubeflow
+    namespace: fraud-detection
   - kind: ServiceAccount
-    name: pipeline-runner
-    namespace: kubeflow
+    name: pipeline-runner-sample
+    namespace: fraud-detection
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role

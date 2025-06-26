@@ -12,6 +12,15 @@ The container image for the pipeline is defined in the `Containerfile` located i
 
 Other images used in the pipeline have their code in corresponding directories. For example, the `DATA_PREPARATION_IMAGE` is defined in the [data_preparation](data_preparation) directory, and similarly for other components.
 
+## OpenShift
+
+### Prerequisites
+
+- Red Hat OpenShift Service Mesh 2
+- Red Hat OpenShift Serverless
+- Red Hat Authorino Operator
+- Red Hat OpenShift AI 2.21 (fast channel)
+
 ## Create a Kind cluster
 
 ```shell
@@ -27,7 +36,7 @@ https://www.kubeflow.org/docs/components/pipelines/operator-guides/installation/
 ### Port forward
 
 ```shell
-kubectl port-forward --namespace kubeflow svc/minio-service 9000:9000
+kubectl port-forward --namespace fraud-detection svc/minio-service 9000:9000
 ```
 
 ### Get MinIO credentials
@@ -69,6 +78,12 @@ mlpipeline
 ./setup.sh
 ```
 
+## Create the Model Registry
+
+Web Console > Settings > Model registry settings
+
+## Set permission to `fraud-detection` project
+
 ## Compile the pipeline
 
 ```shell
@@ -83,20 +98,12 @@ kfp pipeline upload -p fraud-detection-e2e fraud-detection-e2e.yaml
 
 ## Run the pipeline
 
-## Port-forward the inference pod
-
-```shell
-kubectl -n kubeflow get pods -l component=predictor -o jsonpath="{.items[*].metadata.name}" | tr ' ' '\n' | grep '^fraud-detection' | head -n1 | xargs -I {} kubectl port-forward -n kubeflow pod/{} 8081:8080
-```
-
 ### Run Test Requests
-
-With the port-forward active, test the deployed model:
 
 #### Example 1: Checking a User with Potential Fraud
 
 ```shell
-curl -i -X POST http://localhost:8081/v1/models/onnx-model:predict -H "Content-Type: application/json" -d '{"user_id": "user_0"}'
+curl -i -X POST $(kubectl -n fraud-detection get ksvc fd-predictor -o jsonpath='{.status.url}')/v1/models/onnx-model:predict -H "Content-Type: application/json" -d '{"user_id": "user_0"}'
 ```
 
 The request only contains the user ID. The predictor will:
@@ -121,7 +128,7 @@ The prediction value close to 1.0 indicates a high probability of fraud for the 
 #### Example 2: Checking a User with Likely Non-Fraudulent Activity
 
 ```shell
-curl -i -X POST http://localhost:8081/v1/models/onnx-model:predict -H "Content-Type: application/json" -d '{"user_id": "user_1"}'
+curl -i -X POST $(kubectl -n fraud-detection get ksvc fd-predictor -o jsonpath='{.status.url}')/v1/models/onnx-model:predict -H "Content-Type: application/json" -d '{"user_id": "user_1"}'
 ```
 
 Expected output:

@@ -2,7 +2,7 @@ apiVersion: serving.kserve.io/v1alpha1
 kind: ServingRuntime
 metadata:
   name: onnxruntime-servingruntime
-  namespace: kubeflow
+  namespace: fraud-detection
 spec:
   supportedModelFormats:
     - name: onnx

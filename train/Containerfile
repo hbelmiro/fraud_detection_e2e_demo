@@ -21,8 +21,9 @@ RUN python3 -m venv /opt/venv \
 
 COPY train.py $APP_HOME/train.py
 
-RUN mkdir $APP_HOME/features \
-    && chown -R spark:spark $APP_HOME
+RUN mkdir -p $APP_HOME/features \
+    && chgrp -R 0 $APP_HOME \
+    && chmod -R g+w $APP_HOME
 
 USER spark
 

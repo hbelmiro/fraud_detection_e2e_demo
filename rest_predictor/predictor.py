@@ -9,13 +9,11 @@ import numpy as np
 import onnxruntime as ort
 from botocore.client import Config
 from feast import FeatureStore
-from kserve import InferRequest
-from kserve.protocol.grpc.grpc_predict_v2_pb2 import ModelInferRequest
 from model_registry import ModelRegistry
 
 
 def download(artifact_uri):
-    minio_endpoint = "http://minio-service.kubeflow.svc.cluster.local:9000"
+    minio_endpoint = "http://minio-service.fraud-detection.svc.cluster.local:9000"
     access_key = "minio"
     secret_key = "minio123"
 
@@ -36,7 +34,7 @@ def download(artifact_uri):
 
 
 def download_feature_repo():
-    minio_endpoint = "http://minio-service.kubeflow.svc.cluster.local:9000"
+    minio_endpoint = "http://minio-service.fraud-detection.svc.cluster.local:9000"
     access_key = "minio"
     secret_key = "minio123"
     bucket_name = "mlpipeline"
@@ -70,24 +68,57 @@ def download_feature_repo():
 
 
 class ONNXModel(kserve.Model):
-    def __init__(self, name: str, model_name: str, model_version_name: str):
+    def __init__(self, name: str, model_name: str, model_version_name: str, model_registry_url: str):
         super().__init__(name)
         self.model_name = model_name
         self.model_version_name = model_version_name
+        self.model_registry_url = model_registry_url
         self.model = None
         self.feature_store = None
         self.ready = False
         self.load()
 
     def load(self):
+        # Try to read the service account token from environment variable first
+        token = os.getenv("KSERVE_SERVICE_ACCOUNT_TOKEN")
+        if token:
+            # Token from environment is already decoded by Kubernetes, use it directly
+            print("Successfully read service account token from environment variable")
+            token = token.strip()  # Remove any whitespace
+        
+        # Fallback: try to read the service account token file  
+        if not token:
+            try:
+                with open("/var/run/secrets/kubernetes.io/serviceaccount/token", "r") as token_file:
+                    token = token_file.read()
+                    print("Successfully read service account token from file")
+            except FileNotFoundError:
+                print("Service account token file not found")
+                token = None
+
         # Download the model from the registry
-        registry = ModelRegistry(
-            server_address="http://model-registry-service.kubeflow.svc.cluster.local",
-            port=8080,
-            author="fraud-detection-e2e-pipeline",
-            user_token="non-used",  # Just to avoid a warning
-            is_secure=False
-        )
+        try:
+            print(f"Using model registry URL: {self.model_registry_url}")
+            
+            if token:
+                print("Using service account token for Model Registry authentication")
+                registry = ModelRegistry(
+                    server_address=self.model_registry_url,
+                    author="fraud-detection-e2e-pipeline",
+                    user_token=token,
+                    is_secure=False,
+                )
+            else:
+                # Try without authentication as a fallback
+                print("Attempting to connect to Model Registry without authentication")
+                registry = ModelRegistry(
+                    server_address=self.model_registry_url,
+                    author="fraud-detection-e2e-pipeline",
+                    is_secure=False,
+                )
+        except Exception as registry_error:
+            print(f"Failed to initialize Model Registry: {registry_error}")
+            raise RuntimeError(f"Cannot connect to Model Registry: {registry_error}")
 
         model_artifact = registry.get_model_artifact(self.model_name, self.model_version_name)
         download(model_artifact.uri)
@@ -171,7 +202,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--model-name", required=True, help="Name of the model to serve")
     parser.add_argument("--model-version", required=True, help="Version of the model to serve")
+    parser.add_argument("--model-registry-url", required=True, help="Model registry URL")
     args = parser.parse_args()
 
-    model = ONNXModel("onnx-model", args.model_name, args.model_version)
+    model = ONNXModel("onnx-model", args.model_name, args.model_version, args.model_registry_url)
     kserve.ModelServer().start([model])

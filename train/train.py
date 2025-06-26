@@ -23,7 +23,7 @@ logging.basicConfig(
 
 SPARK = SparkSession.builder.appName("FraudDetection").getOrCreate()
 
-MINIO_ENDPOINT = "http://minio-service.kubeflow.svc.cluster.local:9000"
+MINIO_ENDPOINT = "http://minio-service.fraud-detection.svc.cluster.local:9000"
 MINIO_ACCESS_KEY = "minio"
 MINIO_SECRET_KEY = "minio123"
 MINIO_BUCKET = "mlpipeline"
@@ -51,9 +51,10 @@ def download_artifact(artifact_path, dest):
     os.makedirs(dest, exist_ok=True)
 
     final_file_path = os.path.join(dest, "training_data.csv")
+    object_path = artifact_path.replace(f"s3://{MINIO_BUCKET}/", "")
 
     print(f"Downloading: {artifact_path} -> {final_file_path}")
-    client.fget_object(MINIO_BUCKET, artifact_path.replace("minio://mlpipeline/", ""), final_file_path)
+    client.fget_object(MINIO_BUCKET, object_path, final_file_path)
     print("Download complete.")
 
 

@@ -1,0 +1,22 @@
+apiVersion: datasciencepipelinesapplications.opendatahub.io/v1
+kind: DataSciencePipelinesApplication
+metadata:
+  name: sample
+  namespace: fraud-detection
+spec:
+  dspVersion: v2
+  apiServer:
+    enableSamplePipeline: true
+    cABundle:
+      configMapKey: ca.crt
+      configMapName: kube-root-ca.crt
+  objectStorage:
+    enableExternalRoute: false
+    minio:
+      deploy: true
+      image: 'quay.io/opendatahub/minio:RELEASE.2019-08-14T20-37-41Z-license-compliance'
+      pvcSize: 20Gi
+      s3CredentialsSecret:
+        secretName: ds-pipeline-s3-sample
+        accessKey: AWS_ACCESS_KEY_ID
+        secretKey: AWS_SECRET_ACCESS_KEY

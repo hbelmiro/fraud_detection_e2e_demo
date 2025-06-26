@@ -21,8 +21,10 @@ COPY requirements-linux.txt .
 RUN /opt/venv/bin/pip install -r requirements-linux.txt \
     && rm requirements-linux.txt \
     && mkdir -p $APP_HOME/feature_repo/output/ \
-    && chown -R spark:spark $APP_HOME/feature_repo \
-    && mkdir $APP_HOME/.ivy2 \
-    && chown -R spark:spark $APP_HOME/.ivy2
+    && chgrp -R 0 $APP_HOME/feature_repo \
+    && chmod -R g+w $APP_HOME/feature_repo \
+    && mkdir -p $APP_HOME/.ivy2 \
+    && chgrp -R 0 $APP_HOME/.ivy2 \
+    && chmod -R g+w $APP_HOME/.ivy2
 
 USER spark

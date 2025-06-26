@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 
 from minio import Minio, S3Error
 
-MINIO_ENDPOINT = "http://minio-service.kubeflow.svc.cluster.local:9000"
+MINIO_ENDPOINT = "http://minio-service.fraud-detection.svc.cluster.local:9000"
 MINIO_ACCESS_KEY = "minio"
 MINIO_SECRET_KEY = "minio123"
 MINIO_BUCKET = "mlpipeline"
@@ -98,6 +98,12 @@ def download_artifacts(directory_path, dest):
     objects = client.list_objects(MINIO_BUCKET, prefix=directory_path, recursive=True)
 
     for obj in objects:
+        if obj.object_name.endswith('/'):
+            print(f"Creating directory: {obj.object_name}")
+            dir_path = os.path.join(dest, obj.object_name.replace(directory_path, "").lstrip("/"))
+            os.makedirs(dir_path, exist_ok=True)
+            continue
+            
         file_path = os.path.join(dest, obj.object_name.replace(directory_path, "").lstrip("/"))
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
 
@@ -105,6 +111,40 @@ def download_artifacts(directory_path, dest):
         client.fget_object(MINIO_BUCKET, obj.object_name, file_path)
 
     print("Download complete.")
+
+
+def move_parquet_files_from_temp():
+    """Move parquet files from temporary locations to their final expected locations."""
+    output_dir = "/app/feature_repo/data/output"
+    
+    # Look for parquet files in temporary directories
+    temp_parquet_dir = os.path.join(output_dir, "features.parquet", "_temporary")
+    if os.path.exists(temp_parquet_dir):
+        print("Found temporary parquet directory, moving files...")
+        
+        # Find all parquet files in temporary directories
+        parquet_files = []
+        for root, dirs, files in os.walk(temp_parquet_dir):
+            for file in files:
+                if file.endswith('.parquet'):
+                    parquet_files.append(os.path.join(root, file))
+        
+        if parquet_files:
+            # Create final parquet directory
+            final_parquet_dir = os.path.join(output_dir, "features.parquet")
+            os.makedirs(final_parquet_dir, exist_ok=True)
+            
+            # Move parquet files to final location
+            for i, parquet_file in enumerate(parquet_files):
+                final_file = os.path.join(final_parquet_dir, f"part-{i:05d}.parquet")
+                print(f"Moving {parquet_file} -> {final_file}")
+                os.rename(parquet_file, final_file)
+            
+            print(f"Moved {len(parquet_files)} parquet files to final location")
+        else:
+            print("No parquet files found in temporary directory")
+    else:
+        print("No temporary parquet directory found")
 
 
 def main():
@@ -120,6 +160,8 @@ def main():
     download_artifacts(REMOTE_OUTPUT_DIR, local_output_dir)
 
     os.makedirs(local_output_dir, exist_ok=True)
+
+    move_parquet_files_from_temp()
 
     apply_success = feast_apply(args.feature_repo_path)
     if not apply_success:

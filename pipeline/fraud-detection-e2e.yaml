@@ -85,7 +85,7 @@ deploymentSpec:
         - sh
         - -c
         - python /app/feast_feature_engineering.py --feature-repo-path=/app/feature_repo
-        image: quay.io/hbelmiro/fraud-detection-e2e-demo-feature-engineering:latest
+        image: quay.io/hbelmiro/fraud-detection-e2e-demo-feature-engineering-rhoai:latest
     exec-prepare-data:
       container:
         args:
@@ -119,9 +119,9 @@ deploymentSpec:
           \n    spark_app = {\n        \"apiVersion\": \"sparkoperator.k8s.io/v1beta2\"\
           ,\n        \"kind\": \"SparkApplication\",\n        \"metadata\": {\n  \
           \          \"name\": f\"data-preparation-{job_id}\",\n            \"namespace\"\
-          : \"kubeflow\"\n        },\n        \"spec\": {\n            \"type\": \"\
-          Python\",\n            \"pythonVersion\": \"3\",\n            \"mode\":\
-          \ \"cluster\",\n            \"image\": data_preparation_image,\n       \
+          : \"fraud-detection\"\n        },\n        \"spec\": {\n            \"type\"\
+          : \"Python\",\n            \"pythonVersion\": \"3\",\n            \"mode\"\
+          : \"cluster\",\n            \"image\": data_preparation_image,\n       \
           \     \"imagePullPolicy\": \"Always\",\n            \"mainApplicationFile\"\
           : \"local:///app/main.py\",\n            \"sparkVersion\": \"3.5.5\",\n\
           \            \"restartPolicy\": {\n                \"type\": \"Never\"\n\
@@ -150,7 +150,7 @@ deploymentSpec:
           \ application_state in [\"FAILED\", \"SUBMISSION_FAILED\", \"INVALIDATING\"\
           ]:\n            logger.error(f\"Spark job failed with state: {application_state}\"\
           )\n            return False\n\n        time.sleep(10)\n\n"
-        image: quay.io/hbelmiro/fraud-detection-e2e-demo-pipeline:latest
+        image: quay.io/hbelmiro/fraud-detection-e2e-demo-pipeline-rhoai:latest
     exec-register-model:
       container:
         args:
@@ -179,21 +179,33 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef register_model(model: Input[Model]) -> NamedTuple('outputs',\
           \ model_name=str, model_version=str):\n    from model_registry import ModelRegistry\n\
-          \n    print(\"uri: \" + model.uri)\n\n    registry = ModelRegistry(\n  \
-          \      server_address=\"http://model-registry-service.kubeflow.svc.cluster.local\"\
-          ,\n        port=8080,\n        author=\"fraud-detection-e2e-pipeline\",\n\
-          \        user_token=\"non-used\",  # Just to avoid a warning\n        is_secure=False\n\
-          \    )\n\n    model_name = \"fraud-detection\"\n    model_version = \"{{workflow.uid}}\"\
-          \n\n    registry.register_model(\n        name=model_name,\n        uri=model.uri,\n\
-          \        version=model_version,\n        description=\"lorem ipsum\",\n\
-          \        model_format_name=\"onnx\",\n        model_format_version=\"1\"\
-          ,\n        storage_key=\"mlpipeline-minio-artifact\",\n        metadata={\n\
-          \            # can be one of the following types\n            \"int_key\"\
-          : 1,\n            \"bool_key\": False,\n            \"float_key\": 3.14,\n\
-          \            \"str_key\": \"str_value\",\n        }\n    )\n\n    outputs\
-          \ = NamedTuple('outputs', model_name=str, model_version=str)\n    return\
-          \ outputs(model_name, model_version)\n\n"
-        image: quay.io/hbelmiro/fraud-detection-e2e-demo-pipeline:latest
+          \    from kubernetes import client, config\n\n    def get_model_registry_url():\n\
+          \        \"\"\"Get the model registry URL from the Kubernetes service annotation.\"\
+          \"\"\n        try:\n            config.load_incluster_config()\n       \
+          \     v1 = client.CoreV1Api()\n\n            service = v1.read_namespaced_service(\n\
+          \                name=\"fraud-detection\",\n                namespace=\"\
+          rhoai-model-registries\"\n            )\n\n            annotations = service.metadata.annotations\
+          \ or {}\n            url = annotations.get(\"routing.opendatahub.io/external-address-rest\"\
+          )\n\n            if not url:\n                raise ValueError(\"Model registry\
+          \ URL annotation not found\")\n\n            # Remove port if present\n\
+          \            if ':' in url:\n                url = url.split(':')[0]\n\n\
+          \            return f\"https://{url}\"\n        except Exception as e:\n\
+          \            raise Exception(f\"Error getting model registry URL: {e}\"\
+          )\n\n    with open(\"/var/run/secrets/kubernetes.io/serviceaccount/token\"\
+          , \"r\") as token_file:\n        token = token_file.read()\n\n    model_registry_url\
+          \ = get_model_registry_url()\n    print(f\"Using model registry URL: {model_registry_url}\"\
+          )\n\n    registry = ModelRegistry(\n        server_address=model_registry_url,\n\
+          \        author=\"fraud-detection-e2e-pipeline\",\n        user_token=token,\n\
+          \        is_secure=False,\n    )\n\n    model_name = \"fraud-detection\"\
+          \n    model_version = \"{{workflow.uid}}\"\n    registry.register_model(\n\
+          \        name=model_name,\n        uri=model.uri,\n        version=model_version,\n\
+          \        description=\"lorem ipsum\",\n        model_format_name=\"onnx\"\
+          ,\n        model_format_version=\"1\",\n        storage_key=\"mlpipeline-minio-artifact\"\
+          ,\n        metadata={\n            \"int_key\": 1,\n            \"bool_key\"\
+          : False,\n            \"float_key\": 3.14,\n            \"str_key\": \"\
+          str_value\",\n        }\n    )\n\n    outputs = NamedTuple('outputs', model_name=str,\
+          \ model_version=str)\n    return outputs(model_name, model_version)\n\n"
+        image: quay.io/hbelmiro/fraud-detection-e2e-demo-pipeline-rhoai:latest
     exec-retrieve-features:
       container:
         args:
@@ -253,7 +265,7 @@ deploymentSpec:
           transactions:online_order\",\n                \"transactions:set\"\n   \
           \         ],\n        ).to_df()\n\n        return _features\n\n    logging.basicConfig(\n\
           \        level=logging.INFO,\n    )\n\n    logging.info(\"output_df.path:\
-          \ {}\".format(output_df.path))\n\n    minio_endpoint = \"http://minio-service.kubeflow.svc.cluster.local:9000\"\
+          \ {}\".format(output_df.path))\n\n    minio_endpoint = \"http://minio-service.fraud-detection.svc.cluster.local:9000\"\
           \n    minio_access_key = \"minio\"\n    minio_secret_key = \"minio123\"\n\
           \    minio_bucket = \"mlpipeline\"\n    remote_feature_repo_dir = \"artifacts/feature_repo\"\
           \n\n    (\n        SparkSession.builder\n        .appName(\"FeatureEngineeringSpark\"\
@@ -272,7 +284,7 @@ deploymentSpec:
           )\n\n    local_dest = \"/app/feature_repo\"\n\n    download_artifacts(remote_feature_repo_dir,\
           \ local_dest)\n\n    fetch_historical_features_entity_df().to_csv(output_df.path,\
           \ index=False)\n\n"
-        image: quay.io/hbelmiro/fraud-detection-e2e-demo-pipeline:latest
+        image: quay.io/hbelmiro/fraud-detection-e2e-demo-pipeline-rhoai:latest
     exec-serve:
       container:
         args:
@@ -301,30 +313,70 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef serve(model_name: str, model_version_name: str, job_id: str,\
           \ rest_predictor_image: str):\n    import logging\n    import kserve\n \
-          \   from kubernetes import client\n    from kubernetes.client import V1Container\n\
-          \    from model_registry import ModelRegistry\n\n    logging.info(\"serving\
-          \ model: {}\".format(model_name))\n    logging.info(\"model_version: {}\"\
-          .format(model_version_name))\n\n    registry = ModelRegistry(\n        server_address=\"\
-          http://model-registry-service.kubeflow.svc.cluster.local\",\n        port=8080,\n\
-          \        author=\"fraud-detection-e2e-pipeline\",\n        user_token=\"\
-          non-used\",  # Just to avoid a warning\n        is_secure=False\n    )\n\
+          \   from kubernetes import client, config\n    from kubernetes.client import\
+          \ V1Container, V1EnvVar, V1SecretKeySelector\n    from model_registry import\
+          \ ModelRegistry\n    import base64\n\n    def get_model_registry_url():\n\
+          \        \"\"\"Get the model registry URL from the Kubernetes service annotation.\"\
+          \"\"\n        try:\n            config.load_incluster_config()\n       \
+          \     v1 = client.CoreV1Api()\n\n            service = v1.read_namespaced_service(\n\
+          \                name=\"fraud-detection\",\n                namespace=\"\
+          rhoai-model-registries\"\n            )\n\n            annotations = service.metadata.annotations\
+          \ or {}\n            url = annotations.get(\"routing.opendatahub.io/external-address-rest\"\
+          )\n\n            if not url:\n                raise ValueError(\"Model registry\
+          \ URL annotation not found\")\n\n            # Remove port if present\n\
+          \            if ':' in url:\n                url = url.split(':')[0]\n\n\
+          \            return f\"https://{url}\"\n        except Exception as e:\n\
+          \            raise Exception(f\"Error getting model registry URL: {e}\"\
+          )\n\n    def create_token_secret(token: str, job_id: str) -> str:\n    \
+          \    \"\"\"Create a Kubernetes secret with the service account token and\
+          \ return the secret name.\"\"\"\n        from kubernetes import config\n\
+          \        config.load_incluster_config()\n        v1 = client.CoreV1Api()\n\
+          \        secret_name = f\"kserve-token-{job_id[:8]}\"\n\n        secret\
+          \ = client.V1Secret(\n            metadata=client.V1ObjectMeta(\n      \
+          \          name=secret_name,\n                namespace=\"fraud-detection\"\
+          \n            ),\n            type=\"Opaque\",\n            data={\n   \
+          \             \"token\": base64.b64encode(token.strip().encode()).decode()\n\
+          \            }\n        )\n\n        try:\n            v1.create_namespaced_secret(namespace=\"\
+          fraud-detection\", body=secret)\n            logging.info(f\"Created secret\
+          \ {secret_name} with service account token\")\n        except client.rest.ApiException\
+          \ as e:\n            if e.status == 409:  # Already exists\n           \
+          \     v1.patch_namespaced_secret(name=secret_name, namespace=\"fraud-detection\"\
+          , body=secret)\n                logging.info(f\"Updated existing secret\
+          \ {secret_name}\")\n            else:\n                raise\n\n       \
+          \ return secret_name\n\n    with open(\"/var/run/secrets/kubernetes.io/serviceaccount/token\"\
+          , \"r\") as token_file:\n        token = token_file.read()\n\n    model_registry_url\
+          \ = get_model_registry_url()\n    print(f\"Using model registry URL: {model_registry_url}\"\
+          )\n\n    registry = ModelRegistry(\n        server_address=model_registry_url,\n\
+          \        author=\"fraud-detection-e2e-pipeline\",\n        user_token=token,\n\
+          \        is_secure=False,\n    )\n\n    logging.info(\"serving model: {}\"\
+          .format(model_name))\n    logging.info(\"model_version: {}\".format(model_version_name))\n\
           \n    model = registry.get_registered_model(model_name)\n    model_version\
-          \ = registry.get_model_version(model_name, model_version_name)\n\n    inference_service\
-          \ = kserve.V1beta1InferenceService(\n        api_version=kserve.constants.KSERVE_GROUP\
-          \ + \"/v1beta1\",\n        kind=\"InferenceService\",\n        metadata=client.V1ObjectMeta(\n\
-          \            name=model_name + \"-\" + job_id,\n            namespace=kserve.utils.get_default_target_namespace(),\n\
+          \ = registry.get_model_version(model_name, model_version_name)\n\n    token_secret_name\
+          \ = create_token_secret(token, job_id)\n\n    inference_service = kserve.V1beta1InferenceService(\n\
+          \        api_version=kserve.constants.KSERVE_GROUP + \"/v1beta1\",\n   \
+          \     kind=\"InferenceService\",\n        metadata=client.V1ObjectMeta(\n\
+          \            name=\"fd\",\n            namespace=\"fraud-detection\",\n\
           \            labels={\n                \"modelregistry/registered-model-id\"\
           : model.id,\n                \"modelregistry/model-version-id\": model_version.id\n\
-          \            },\n        ),\n        spec=kserve.V1beta1InferenceServiceSpec(\n\
+          \            },\n            annotations={\n                \"sidecar.istio.io/inject\"\
+          : \"false\"\n            },\n        ),\n        spec=kserve.V1beta1InferenceServiceSpec(\n\
           \            predictor=kserve.V1beta1PredictorSpec(\n                service_account_name=\"\
           kserve-sa\",\n                containers=[\n                    V1Container(\n\
           \                        name=\"inference-container\",\n               \
           \         image=rest_predictor_image,\n                        command=[\"\
           python\", \"predictor.py\"],\n                        args=[\"--model-name\"\
-          , model_name, \"--model-version\", model_version_name]\n               \
-          \     )\n                ]\n            )\n        ),\n    )\n    ks_client\
-          \ = kserve.KServeClient()\n    ks_client.create(inference_service)\n\n"
-        image: quay.io/hbelmiro/fraud-detection-e2e-demo-pipeline:latest
+          , model_name, \"--model-version\", model_version_name, \"--model-registry-url\"\
+          , model_registry_url],\n                        env=[\n                \
+          \            V1EnvVar(\n                                name=\"KSERVE_SERVICE_ACCOUNT_TOKEN\"\
+          ,\n                                value_from=client.V1EnvVarSource(\n \
+          \                                   secret_key_ref=V1SecretKeySelector(\n\
+          \                                        name=token_secret_name,\n     \
+          \                                   key=\"token\"\n                    \
+          \                )\n                                )\n                \
+          \            )\n                        ]\n                    )\n     \
+          \           ]\n            )\n        ),\n    )\n    ks_client = kserve.KServeClient()\n\
+          \    ks_client.create(inference_service)\n\n"
+        image: quay.io/hbelmiro/fraud-detection-e2e-demo-pipeline-rhoai:latest
     exec-train-model:
       container:
         args:
@@ -335,7 +387,7 @@ deploymentSpec:
         command:
         - python
         - /app/train.py
-        image: quay.io/hbelmiro/fraud-detection-e2e-demo-train:latest
+        image: quay.io/hbelmiro/fraud-detection-e2e-demo-train-rhoai:latest
 pipelineInfo:
   name: fraud-detection-e2e-pipeline
 root:
@@ -363,7 +415,7 @@ root:
           parameters:
             data_preparation_image:
               runtimeValue:
-                constant: quay.io/hbelmiro/fraud-detection-e2e-demo-data-preparation:latest
+                constant: quay.io/hbelmiro/fraud-detection-e2e-demo-data-preparation-rhoai:latest
             job_id:
               runtimeValue:
                 constant: '{{$.pipeline_job_uuid}}'
@@ -418,7 +470,7 @@ root:
                 producerTask: register-model
             rest_predictor_image:
               runtimeValue:
-                constant: quay.io/hbelmiro/fraud-detection-e2e-demo-rest-predictor:latest
+                constant: quay.io/hbelmiro/fraud-detection-e2e-demo-rest-predictor-rhoai:latest
         taskInfo:
           name: serve
       train-model:
