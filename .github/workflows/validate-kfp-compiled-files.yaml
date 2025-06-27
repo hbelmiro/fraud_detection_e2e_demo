@@ -25,7 +25,8 @@ jobs:
           python-version: '3.11'
 
       - name: Check pipelines
-        uses: hbelmiro/validate-kfp-compiled-files@0d944d338076798e179fd27834eb35eeb3b82e5d
+        uses: hbelmiro/validate-kfp-compiled-files@ad586d760da7922fde248c870f985eba21891130
         with:
           pipelines-map-file: './.github/workflows/pipelines.json'
           requirements-file: './pipeline/requirements-linux.txt'
+          extra-compile-args: '--disable-execution-caching-by-default'
