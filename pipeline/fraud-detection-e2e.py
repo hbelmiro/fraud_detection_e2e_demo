@@ -315,22 +315,16 @@ def fraud_detection_e2e_pipeline():
 
     prepare_data_task = prepare_data(job_id=kfp.dsl.PIPELINE_JOB_ID_PLACEHOLDER,
                                      data_preparation_image=DATA_PREPARATION_IMAGE)
-    prepare_data_task.set_caching_options(False)
 
     feature_engineering_task = feature_engineering(data_preparation_ok=prepare_data_task.output)
-    feature_engineering_task.set_caching_options(False)
 
     retrieve_features_task = retrieve_features(features_ok=feature_engineering_task.output)
-    retrieve_features_task.set_caching_options(False)
 
     train_model_task = train_model(dataset=retrieve_features_task.outputs['output_df'])
-    train_model_task.set_caching_options(False)
 
     register_model_task = register_model(model=train_model_task.outputs['model'])
-    register_model_task.set_caching_options(False)
 
-    serve_task = serve(model_name=register_model_task.outputs["model_name"],
-                       model_version_name=register_model_task.outputs["model_version"],
-                       job_id=kfp.dsl.PIPELINE_JOB_ID_PLACEHOLDER,
-                       rest_predictor_image=REST_PREDICTOR_IMAGE)
-    serve_task.set_caching_options(False)
+    serve(model_name=register_model_task.outputs["model_name"],
+          model_version_name=register_model_task.outputs["model_version"],
+          job_id=kfp.dsl.PIPELINE_JOB_ID_PLACEHOLDER,
+          rest_predictor_image=REST_PREDICTOR_IMAGE)

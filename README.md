@@ -69,6 +69,12 @@ mlpipeline
 ./setup.sh
 ```
 
+## Compile the pipeline
+
+```shell
+kfp dsl compile --py pipeline/fraud-detection-e2e.py --output pipeline/fraud-detection-e2e.yaml --disable-execution-caching-by-default
+```
+
 ## Upload the pipeline
 
 ```shell
