@@ -25,13 +25,13 @@ mc cp \
 mc ls --recursive local/mlpipeline/artifacts/
 
 # Install Model Registry
-kubectl apply -k "https://github.com/kubeflow/model-registry/manifests/kustomize/overlays/db?ref=v0.2.16"
+# kubectl apply -k "https://github.com/kubeflow/model-registry/manifests/kustomize/overlays/db?ref=v0.2.16"
 
 # Install KServe
-kubectl create namespace kserve
-oc project kserve
-curl -s "https://raw.githubusercontent.com/kserve/kserve/release-0.15/hack/quick_install.sh" | bash
-oc project kubeflow
+# kubectl create namespace kserve
+# oc project kserve
+# curl -s "https://raw.githubusercontent.com/kserve/kserve/release-0.15/hack/quick_install.sh" | bash
+# oc project kubeflow
 
 # Install Kubeflow Spark Operator
 helm install spark-operator spark-operator/spark-operator \
