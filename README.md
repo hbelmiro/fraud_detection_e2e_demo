@@ -86,7 +86,7 @@ kfp pipeline upload -p fraud-detection-e2e fraud-detection-e2e.yaml
 ## Port-forward the inference pod
 
 ```shell
-kubectl -n kubeflow get pods -l serving.kserve.io/inferenceservice=fraud-detection -o jsonpath="{.items[0].metadata.name}" | xargs -I {} kubectl port-forward -n kubeflow pod/{} 8081:8080
+kubectl -n kubeflow get pods -l component=predictor -o jsonpath="{.items[*].metadata.name}" | tr ' ' '\n' | grep '^fraud-detection' | head -n1 | xargs -I {} kubectl port-forward -n kubeflow pod/{} 8081:8080
 ```
 
 ### Run Test Requests
