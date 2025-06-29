@@ -227,7 +227,7 @@ def register_model(model: Input[Model]) -> NamedTuple('outputs', model_name=str,
     print("uri: " + model.uri)
 
     registry = ModelRegistry(
-        server_address="http://model-registry-service.kubeflow.svc.cluster.local",
+        server_address="http://fraud-detection.rhoai-model-registries.svc.cluster.local",
         port=8080,
         author="fraud-detection-e2e-pipeline",
         user_token="non-used",  # Just to avoid a warning

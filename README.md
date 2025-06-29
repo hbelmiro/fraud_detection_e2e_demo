@@ -78,6 +78,10 @@ mlpipeline
 ./setup.sh
 ```
 
+## Create the Model Registry
+
+Web Console > Settings > Model registry settings
+
 ## Compile the pipeline
 
 ```shell

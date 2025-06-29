@@ -2,8 +2,16 @@
 
 set -euo pipefail
 
-# Configure MinIO Client
-mc alias set local http://localhost:9000 minio minio123
+# Get MinIO credentials from the cluster
+ACCESS_KEY=$(kubectl get secret ds-pipeline-s3-sample -n kubeflow -oyaml | grep accesskey | awk '{print $2}' | base64 --decode)
+SECRET_KEY=$(kubectl get secret ds-pipeline-s3-sample -n kubeflow -oyaml | grep secretkey | awk '{print $2}' | base64 --decode)
+
+echo "Using MinIO credentials:"
+echo "Access Key: $ACCESS_KEY"
+echo "Secret Key: $SECRET_KEY"
+
+# Configure MinIO Client with correct credentials
+mc alias set local http://localhost:9000 "$ACCESS_KEY" "$SECRET_KEY"
 
 # Create directory structure
 mc mb local/mlpipeline/artifacts/feature_repo/data/input --p
@@ -41,5 +49,4 @@ helm install spark-operator spark-operator/spark-operator \
 # Make sure the Kubeflow Spark Operator is watching the kubeflow namespace. Run this command to let it watch all namespaces:
 helm upgrade spark-operator spark-operator/spark-operator --set spark.jobNamespaces={} --namespace spark-operator
 
-# Adjust RBAC policies
-kubectl apply -k ./manifests -n kubeflow
+kubectl apply -k ./manifests

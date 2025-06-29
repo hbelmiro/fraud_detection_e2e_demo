@@ -180,7 +180,7 @@ deploymentSpec:
           \ *\n\ndef register_model(model: Input[Model]) -> NamedTuple('outputs',\
           \ model_name=str, model_version=str):\n    from model_registry import ModelRegistry\n\
           \n    print(\"uri: \" + model.uri)\n\n    registry = ModelRegistry(\n  \
-          \      server_address=\"http://model-registry-service.kubeflow.svc.cluster.local\"\
+          \      server_address=\"http://fraud-detection.rhoai-model-registries.svc.cluster.local\"\
           ,\n        port=8080,\n        author=\"fraud-detection-e2e-pipeline\",\n\
           \        user_token=\"non-used\",  # Just to avoid a warning\n        is_secure=False\n\
           \    )\n\n    model_name = \"fraud-detection\"\n    model_version = \"{{workflow.uid}}\"\
