@@ -4,14 +4,14 @@ from typing import NamedTuple
 from kfp import dsl
 from kfp.dsl import Input, Dataset, Output, Model
 
-PIPELINE_IMAGE = os.getenv("PIPELINE_IMAGE", "quay.io/hbelmiro/fraud-detection-e2e-demo-pipeline:latest")
+PIPELINE_IMAGE = os.getenv("PIPELINE_IMAGE", "quay.io/hbelmiro/fraud-detection-e2e-demo-pipeline-rhoai:latest")
 FEATURE_ENGINEERING_IMAGE = os.getenv("FEATURE_ENGINEERING_IMAGE",
-                                      "quay.io/hbelmiro/fraud-detection-e2e-demo-feature-engineering:latest")
-TRAIN_IMAGE = os.getenv("TRAIN_IMAGE", "quay.io/hbelmiro/fraud-detection-e2e-demo-train:latest")
+                                      "quay.io/hbelmiro/fraud-detection-e2e-demo-feature-engineering-rhoai:latest")
+TRAIN_IMAGE = os.getenv("TRAIN_IMAGE", "quay.io/hbelmiro/fraud-detection-e2e-demo-train-rhoai:latest")
 DATA_PREPARATION_IMAGE = os.getenv("DATA_PREPARATION_IMAGE",
-                                   "quay.io/hbelmiro/fraud-detection-e2e-demo-data-preparation:latest")
+                                   "quay.io/hbelmiro/fraud-detection-e2e-demo-data-preparation-rhoai:latest")
 REST_PREDICTOR_IMAGE = os.getenv("REST_PREDICTOR_IMAGE",
-                                 "quay.io/hbelmiro/fraud-detection-e2e-demo-rest-predictor:latest")
+                                 "quay.io/hbelmiro/fraud-detection-e2e-demo-rest-predictor-rhoai:latest")
 
 
 @dsl.component(base_image=PIPELINE_IMAGE)
