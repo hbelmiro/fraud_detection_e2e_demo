@@ -44,9 +44,17 @@ mc ls --recursive local/mlpipeline/artifacts/
 # Install Kubeflow Spark Operator
 helm install spark-operator spark-operator/spark-operator \
     --namespace spark-operator \
-    --create-namespace
+    --create-namespace \
+    --set webhook.enable=true
 
 # Make sure the Kubeflow Spark Operator is watching the kubeflow namespace. Run this command to let it watch all namespaces:
 helm upgrade spark-operator spark-operator/spark-operator --set spark.jobNamespaces={} --namespace spark-operator
+
+# Apply OpenShift compatibility patches for Spark Operator deployments
+# These patches remove security context fields that conflict with OpenShift SCCs
+kubectl patch deployment spark-operator-controller -n spark-operator --type='json' -p='[{"op": "remove", "path": "/spec/template/spec/securityContext/fsGroup"}]' || true
+kubectl patch deployment spark-operator-controller -n spark-operator --type='json' -p='[{"op": "remove", "path": "/spec/template/spec/containers/0/securityContext/seccompProfile"}]' || true
+kubectl patch deployment spark-operator-webhook -n spark-operator --type='json' -p='[{"op": "remove", "path": "/spec/template/spec/securityContext/fsGroup"}]' || true
+kubectl patch deployment spark-operator-webhook -n spark-operator --type='json' -p='[{"op": "remove", "path": "/spec/template/spec/containers/0/securityContext/seccompProfile"}]' || true
 
 kubectl apply -k ./manifests

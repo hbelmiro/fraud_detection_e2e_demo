@@ -1,0 +1,30 @@
+---
+# OpenShift SCC rules for Spark Operator service accounts
+# These rules grant the anyuid SCC to the Spark Operator service accounts
+# Note: These are cluster-level resources and require cluster-admin privileges
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: spark-operator-controller-anyuid
+subjects:
+- kind: ServiceAccount
+  name: spark-operator-controller
+  namespace: spark-operator
+roleRef:
+  kind: ClusterRole
+  name: system:openshift:scc:anyuid
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: spark-operator-webhook-anyuid
+subjects:
+- kind: ServiceAccount
+  name: spark-operator-webhook
+  namespace: spark-operator
+roleRef:
+  kind: ClusterRole
+  name: system:openshift:scc:anyuid
+  apiGroup: rbac.authorization.k8s.io 
