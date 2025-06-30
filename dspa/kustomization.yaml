@@ -1,0 +1,3 @@
+resources:
+- dspa_simple.yaml
+- minio-secret.yaml
