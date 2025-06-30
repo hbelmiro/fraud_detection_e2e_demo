@@ -49,3 +49,6 @@ kubectl patch deployment spark-operator-webhook -n spark-operator --type='json' 
 kubectl patch deployment spark-operator-webhook -n spark-operator --type='json' -p='[{"op": "remove", "path": "/spec/template/spec/containers/0/securityContext/seccompProfile"}]' || true
 
 kubectl apply -k ./manifests
+
+# Label the fraud-detection namespace for Istio mesh connectivity
+kubectl label namespace fraud-detection maistra.io/member-of=istio-system --overwrite

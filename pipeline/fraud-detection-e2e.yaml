@@ -180,9 +180,9 @@ deploymentSpec:
           \ *\n\ndef register_model(model: Input[Model]) -> NamedTuple('outputs',\
           \ model_name=str, model_version=str):\n    from model_registry import ModelRegistry\n\
           \n    print(\"uri: \" + model.uri)\n\n    registry = ModelRegistry(\n  \
-          \      server_address=\"http://fraud-detection.rhoai-model-registries.svc.cluster.local\"\
+          \      server_address=\"https://fraud-detection.rhoai-model-registries.svc.cluster.local\"\
           ,\n        port=8080,\n        author=\"fraud-detection-e2e-pipeline\",\n\
-          \        user_token=\"non-used\",  # Just to avoid a warning\n        is_secure=False\n\
+          \        user_token=\"non-used\",  # Just to avoid a warning\n        is_secure=True\n\
           \    )\n\n    model_name = \"fraud-detection\"\n    model_version = \"{{workflow.uid}}\"\
           \n\n    registry.register_model(\n        name=model_name,\n        uri=model.uri,\n\
           \        version=model_version,\n        description=\"lorem ipsum\",\n\
@@ -305,9 +305,9 @@ deploymentSpec:
           \    from model_registry import ModelRegistry\n\n    logging.info(\"serving\
           \ model: {}\".format(model_name))\n    logging.info(\"model_version: {}\"\
           .format(model_version_name))\n\n    registry = ModelRegistry(\n        server_address=\"\
-          http://fraud-detection.rhoai-model-registries.svc.cluster.local\",\n   \
-          \     port=8080,\n        author=\"fraud-detection-e2e-pipeline\",\n   \
-          \     user_token=\"non-used\",  # Just to avoid a warning\n        is_secure=False\n\
+          https://fraud-detection.rhoai-model-registries.svc.cluster.local\",\n  \
+          \      port=8080,\n        author=\"fraud-detection-e2e-pipeline\",\n  \
+          \      user_token=\"non-used\",  # Just to avoid a warning\n        is_secure=True\n\
           \    )\n\n    model = registry.get_registered_model(model_name)\n    model_version\
           \ = registry.get_model_version(model_name, model_version_name)\n\n    inference_service\
           \ = kserve.V1beta1InferenceService(\n        api_version=kserve.constants.KSERVE_GROUP\

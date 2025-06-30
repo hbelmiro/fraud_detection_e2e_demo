@@ -227,11 +227,11 @@ def register_model(model: Input[Model]) -> NamedTuple('outputs', model_name=str,
     print("uri: " + model.uri)
 
     registry = ModelRegistry(
-        server_address="http://fraud-detection.rhoai-model-registries.svc.cluster.local",
+        server_address="https://fraud-detection.rhoai-model-registries.svc.cluster.local",
         port=8080,
         author="fraud-detection-e2e-pipeline",
         user_token="non-used",  # Just to avoid a warning
-        is_secure=False
+        is_secure=True
     )
 
     model_name = "fraud-detection"
@@ -270,11 +270,11 @@ def serve(model_name: str, model_version_name: str, job_id: str, rest_predictor_
     logging.info("model_version: {}".format(model_version_name))
 
     registry = ModelRegistry(
-        server_address="http://fraud-detection.rhoai-model-registries.svc.cluster.local",
+        server_address="https://fraud-detection.rhoai-model-registries.svc.cluster.local",
         port=8080,
         author="fraud-detection-e2e-pipeline",
         user_token="non-used",  # Just to avoid a warning
-        is_secure=False
+        is_secure=True
     )
 
     model = registry.get_registered_model(model_name)
