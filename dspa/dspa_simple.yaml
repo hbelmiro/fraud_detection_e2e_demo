@@ -19,5 +19,3 @@ spec:
         secretName: ds-pipeline-s3-sample
         accessKey: AWS_ACCESS_KEY_ID
         secretKey: AWS_SECRET_ACCESS_KEY
-  mlpipelineUI:
-    image: quay.io/opendatahub/ds-pipelines-frontend:latest
