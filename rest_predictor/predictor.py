@@ -15,7 +15,7 @@ from model_registry import ModelRegistry
 
 
 def download(artifact_uri):
-    minio_endpoint = "http://minio-service.kubeflow.svc.cluster.local:9000"
+    minio_endpoint = "http://minio-service.fraud-detection.svc.cluster.local:9000"
     access_key = "minio"
     secret_key = "minio123"
 
@@ -36,7 +36,7 @@ def download(artifact_uri):
 
 
 def download_feature_repo():
-    minio_endpoint = "http://minio-service.kubeflow.svc.cluster.local:9000"
+    minio_endpoint = "http://minio-service.fraud-detection.svc.cluster.local:9000"
     access_key = "minio"
     secret_key = "minio123"
     bucket_name = "mlpipeline"
@@ -82,7 +82,7 @@ class ONNXModel(kserve.Model):
     def load(self):
         # Download the model from the registry
         registry = ModelRegistry(
-            server_address="http://model-registry-service.kubeflow.svc.cluster.local",
+            server_address="http://model-registry-service.fraud-detection.svc.cluster.local",
             port=8080,
             author="fraud-detection-e2e-pipeline",
             user_token="non-used",  # Just to avoid a warning

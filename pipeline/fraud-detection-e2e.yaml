@@ -119,9 +119,9 @@ deploymentSpec:
           \n    spark_app = {\n        \"apiVersion\": \"sparkoperator.k8s.io/v1beta2\"\
           ,\n        \"kind\": \"SparkApplication\",\n        \"metadata\": {\n  \
           \          \"name\": f\"data-preparation-{job_id}\",\n            \"namespace\"\
-          : \"kubeflow\"\n        },\n        \"spec\": {\n            \"type\": \"\
-          Python\",\n            \"pythonVersion\": \"3\",\n            \"mode\":\
-          \ \"cluster\",\n            \"image\": data_preparation_image,\n       \
+          : \"fraud-detection\"\n        },\n        \"spec\": {\n            \"type\"\
+          : \"Python\",\n            \"pythonVersion\": \"3\",\n            \"mode\"\
+          : \"cluster\",\n            \"image\": data_preparation_image,\n       \
           \     \"imagePullPolicy\": \"Always\",\n            \"mainApplicationFile\"\
           : \"local:///app/main.py\",\n            \"sparkVersion\": \"3.5.5\",\n\
           \            \"restartPolicy\": {\n                \"type\": \"Never\"\n\
@@ -253,7 +253,7 @@ deploymentSpec:
           transactions:online_order\",\n                \"transactions:set\"\n   \
           \         ],\n        ).to_df()\n\n        return _features\n\n    logging.basicConfig(\n\
           \        level=logging.INFO,\n    )\n\n    logging.info(\"output_df.path:\
-          \ {}\".format(output_df.path))\n\n    minio_endpoint = \"http://minio-service.kubeflow.svc.cluster.local:9000\"\
+          \ {}\".format(output_df.path))\n\n    minio_endpoint = \"http://minio-service.fraud-detection.svc.cluster.local:9000\"\
           \n    minio_access_key = \"minio\"\n    minio_secret_key = \"minio123\"\n\
           \    minio_bucket = \"mlpipeline\"\n    remote_feature_repo_dir = \"artifacts/feature_repo\"\
           \n\n    (\n        SparkSession.builder\n        .appName(\"FeatureEngineeringSpark\"\
@@ -305,10 +305,10 @@ deploymentSpec:
           \    from model_registry import ModelRegistry\n\n    logging.info(\"serving\
           \ model: {}\".format(model_name))\n    logging.info(\"model_version: {}\"\
           .format(model_version_name))\n\n    registry = ModelRegistry(\n        server_address=\"\
-          http://model-registry-service.kubeflow.svc.cluster.local\",\n        port=8080,\n\
-          \        author=\"fraud-detection-e2e-pipeline\",\n        user_token=\"\
-          non-used\",  # Just to avoid a warning\n        is_secure=False\n    )\n\
-          \n    model = registry.get_registered_model(model_name)\n    model_version\
+          http://fraud-detection.rhoai-model-registries.svc.cluster.local\",\n   \
+          \     port=8080,\n        author=\"fraud-detection-e2e-pipeline\",\n   \
+          \     user_token=\"non-used\",  # Just to avoid a warning\n        is_secure=False\n\
+          \    )\n\n    model = registry.get_registered_model(model_name)\n    model_version\
           \ = registry.get_model_version(model_name, model_version_name)\n\n    inference_service\
           \ = kserve.V1beta1InferenceService(\n        api_version=kserve.constants.KSERVE_GROUP\
           \ + \"/v1beta1\",\n        kind=\"InferenceService\",\n        metadata=client.V1ObjectMeta(\n\

@@ -31,7 +31,7 @@ def prepare_data(job_id: str, data_preparation_image: str) -> bool:
         "kind": "SparkApplication",
         "metadata": {
             "name": f"data-preparation-{job_id}",
-            "namespace": "kubeflow"
+            "namespace": "fraud-detection"
         },
         "spec": {
             "type": "Python",
@@ -178,7 +178,7 @@ def retrieve_features(features_ok: str, output_df: Output[Dataset]):
 
     logging.info("output_df.path: {}".format(output_df.path))
 
-    minio_endpoint = "http://minio-service.kubeflow.svc.cluster.local:9000"
+    minio_endpoint = "http://minio-service.fraud-detection.svc.cluster.local:9000"
     minio_access_key = "minio"
     minio_secret_key = "minio123"
     minio_bucket = "mlpipeline"
@@ -270,7 +270,7 @@ def serve(model_name: str, model_version_name: str, job_id: str, rest_predictor_
     logging.info("model_version: {}".format(model_version_name))
 
     registry = ModelRegistry(
-        server_address="http://model-registry-service.kubeflow.svc.cluster.local",
+        server_address="http://fraud-detection.rhoai-model-registries.svc.cluster.local",
         port=8080,
         author="fraud-detection-e2e-pipeline",
         user_token="non-used",  # Just to avoid a warning

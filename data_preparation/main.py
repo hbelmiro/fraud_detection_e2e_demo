@@ -12,7 +12,7 @@ from pyspark.sql.functions import (
 )
 
 MINIO_BUCKET = "mlpipeline"
-MINIO_ENDPOINT="http://minio-service.kubeflow.svc.cluster.local:9000"
+MINIO_ENDPOINT="http://minio-service.fraud-detection.svc.cluster.local:9000"
 FEATURE_REPO_DIR = "s3a://" + MINIO_BUCKET + "/artifacts/feature_repo/"
 DATA_DIR = FEATURE_REPO_DIR + "data/"
 INPUT_DIR = DATA_DIR + "input/"

@@ -2,4 +2,4 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: spark
-  namespace: kubeflow
+  namespace: fraud-detection

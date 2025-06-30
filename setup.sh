@@ -3,8 +3,8 @@
 set -euo pipefail
 
 # Get MinIO credentials from the cluster
-ACCESS_KEY=$(kubectl get secret ds-pipeline-s3-sample -n kubeflow -oyaml | grep accesskey | awk '{print $2}' | base64 --decode)
-SECRET_KEY=$(kubectl get secret ds-pipeline-s3-sample -n kubeflow -oyaml | grep secretkey | awk '{print $2}' | base64 --decode)
+ACCESS_KEY=$(kubectl get secret ds-pipeline-s3-sample -n fraud-detection -oyaml | grep accesskey | awk '{print $2}' | base64 --decode)
+SECRET_KEY=$(kubectl get secret ds-pipeline-s3-sample -n fraud-detection -oyaml | grep secretkey | awk '{print $2}' | base64 --decode)
 
 echo "Using MinIO credentials:"
 echo "Access Key: $ACCESS_KEY"
@@ -32,22 +32,13 @@ mc cp \
 # Verify the upload (optional)
 mc ls --recursive local/mlpipeline/artifacts/
 
-# Install Model Registry
-# kubectl apply -k "https://github.com/kubeflow/model-registry/manifests/kustomize/overlays/db?ref=v0.2.16"
-
-# Install KServe
-# kubectl create namespace kserve
-# oc project kserve
-# curl -s "https://raw.githubusercontent.com/kserve/kserve/release-0.15/hack/quick_install.sh" | bash
-# oc project kubeflow
-
 # Install Kubeflow Spark Operator
 helm install spark-operator spark-operator/spark-operator \
     --namespace spark-operator \
     --create-namespace \
     --set webhook.enable=true
 
-# Make sure the Kubeflow Spark Operator is watching the kubeflow namespace. Run this command to let it watch all namespaces:
+# Make sure the Kubeflow Spark Operator is watching the fraud-detection namespace. Run this command to let it watch all namespaces:
 helm upgrade spark-operator spark-operator/spark-operator --set spark.jobNamespaces={} --namespace spark-operator
 
 # Apply OpenShift compatibility patches for Spark Operator deployments

@@ -2,6 +2,7 @@ apiVersion: datasciencepipelinesapplications.opendatahub.io/v1
 kind: DataSciencePipelinesApplication
 metadata:
   name: sample
+  namespace: fraud-detection
 spec:
   dspVersion: v2
   apiServer:

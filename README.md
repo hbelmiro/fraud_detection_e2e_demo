@@ -36,7 +36,7 @@ https://www.kubeflow.org/docs/components/pipelines/operator-guides/installation/
 ### Port forward
 
 ```shell
-kubectl port-forward --namespace kubeflow svc/minio-service 9000:9000
+kubectl port-forward --namespace fraud-detection svc/minio-service 9000:9000
 ```
 
 ### Get MinIO credentials
@@ -99,7 +99,7 @@ kfp pipeline upload -p fraud-detection-e2e fraud-detection-e2e.yaml
 ## Port-forward the inference pod
 
 ```shell
-kubectl -n kubeflow get pods -l component=predictor -o jsonpath="{.items[*].metadata.name}" | tr ' ' '\n' | grep '^fraud-detection' | head -n1 | xargs -I {} kubectl port-forward -n kubeflow pod/{} 8081:8080
+kubectl -n fraud-detection get pods -l component=predictor -o jsonpath="{.items[*].metadata.name}" | tr ' ' '\n' | grep '^fraud-detection' | head -n1 | xargs -I {} kubectl port-forward -n fraud-detection pod/{} 8081:8080
 ```
 
 ### Run Test Requests

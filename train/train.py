@@ -23,7 +23,7 @@ logging.basicConfig(
 
 SPARK = SparkSession.builder.appName("FraudDetection").getOrCreate()
 
-MINIO_ENDPOINT = "http://minio-service.kubeflow.svc.cluster.local:9000"
+MINIO_ENDPOINT = "http://minio-service.fraud-detection.svc.cluster.local:9000"
 MINIO_ACCESS_KEY = "minio"
 MINIO_SECRET_KEY = "minio123"
 MINIO_BUCKET = "mlpipeline"
