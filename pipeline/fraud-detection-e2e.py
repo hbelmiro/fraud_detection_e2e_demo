@@ -223,20 +223,49 @@ def train_model(dataset: Input[Dataset], model: Output[Model]):
 @dsl.component(base_image=PIPELINE_IMAGE)
 def register_model(model: Input[Model]) -> NamedTuple('outputs', model_name=str, model_version=str):
     from model_registry import ModelRegistry
+    import os
+    import urllib.parse
+    import time
+    from kubernetes import client, config
 
-    print("uri: " + model.uri)
+    def fetch_ca_bundle(namespace="redhat-ods-applications", configmap_name="odh-trusted-ca-bundle", key="ca-bundle.crt", dest_path="/tmp/odh-ca-bundle.crt"):
+        config.load_incluster_config()
+        v1 = client.CoreV1Api()
+        cm = v1.read_namespaced_config_map(configmap_name, namespace)
+        print(f"ConfigMap keys: {list(cm.data.keys())}")
+        if key not in cm.data:
+            print(f"ERROR: Key '{key}' not found in ConfigMap '{configmap_name}'. Available keys: {list(cm.data.keys())}")
+            raise KeyError(f"Key '{key}' not found in ConfigMap '{configmap_name}'")
+        ca_bundle = cm.data[key]
+        print(f"Length of CA bundle value: {len(ca_bundle) if ca_bundle is not None else 'None'}")
+        if ca_bundle is None or not ca_bundle.strip():
+            raise ValueError(f"CA bundle value for key '{key}' in ConfigMap '{configmap_name}' is None or empty!")
+        with open(dest_path, "w") as f:
+            f.write(ca_bundle)
+        print(f"CA bundle written to {dest_path}, size: {os.path.getsize(dest_path)} bytes")
+        with open(dest_path, "r") as f:
+            for i in range(5):
+                line = f.readline()
+                if not line:
+                    break
+                print(f"CA bundle line {i+1}: {line.strip()}")
+        return dest_path
+
+    ca_path = fetch_ca_bundle()
+
+    with open("/var/run/secrets/kubernetes.io/serviceaccount/token", "r") as token_file:
+        token = token_file.read()
 
     registry = ModelRegistry(
-        server_address="https://fraud-detection.rhoai-model-registries.svc.cluster.local",
-        port=8080,
+        server_address="https://fraud-detection-rest.apps.rosa.hbelmiro-2.4osv.p3.openshiftapps.com",
         author="fraud-detection-e2e-pipeline",
-        user_token="non-used",  # Just to avoid a warning
-        is_secure=True
+        user_token=token,
+        is_secure=False,
+        custom_ca=ca_path
     )
 
     model_name = "fraud-detection"
     model_version = "{{workflow.uid}}"
-
     registry.register_model(
         name=model_name,
         uri=model.uri,
@@ -246,7 +275,6 @@ def register_model(model: Input[Model]) -> NamedTuple('outputs', model_name=str,
         model_format_version="1",
         storage_key="mlpipeline-minio-artifact",
         metadata={
-            # can be one of the following types
             "int_key": 1,
             "bool_key": False,
             "float_key": 3.14,
@@ -262,20 +290,50 @@ def register_model(model: Input[Model]) -> NamedTuple('outputs', model_name=str,
 def serve(model_name: str, model_version_name: str, job_id: str, rest_predictor_image: str):
     import logging
     import kserve
-    from kubernetes import client
+    import urllib.parse
+    import time
+    from kubernetes import client, config
     from kubernetes.client import V1Container
     from model_registry import ModelRegistry
 
-    logging.info("serving model: {}".format(model_name))
-    logging.info("model_version: {}".format(model_version_name))
+    def fetch_ca_bundle(namespace="redhat-ods-applications", configmap_name="odh-trusted-ca-bundle", key="ca-bundle.crt", dest_path="/tmp/odh-ca-bundle.crt"):
+        config.load_incluster_config()
+        v1 = client.CoreV1Api()
+        cm = v1.read_namespaced_config_map(configmap_name, namespace)
+        print(f"ConfigMap keys: {list(cm.data.keys())}")
+        if key not in cm.data:
+            print(f"ERROR: Key '{key}' not found in ConfigMap '{configmap_name}'. Available keys: {list(cm.data.keys())}")
+            raise KeyError(f"Key '{key}' not found in ConfigMap '{configmap_name}'")
+        ca_bundle = cm.data[key]
+        print(f"Length of CA bundle value: {len(ca_bundle) if ca_bundle is not None else 'None'}")
+        if ca_bundle is None or not ca_bundle.strip():
+            raise ValueError(f"CA bundle value for key '{key}' in ConfigMap '{configmap_name}' is None or empty!")
+        with open(dest_path, "w") as f:
+            f.write(ca_bundle)
+        print(f"CA bundle written to {dest_path}, size: {os.path.getsize(dest_path)} bytes")
+        with open(dest_path, "r") as f:
+            for i in range(5):
+                line = f.readline()
+                if not line:
+                    break
+                print(f"CA bundle line {i+1}: {line.strip()}")
+        return dest_path
+
+    ca_path = fetch_ca_bundle()
+
+    with open("/var/run/secrets/kubernetes.io/serviceaccount/token", "r") as token_file:
+        token = token_file.read()
 
     registry = ModelRegistry(
-        server_address="https://fraud-detection.rhoai-model-registries.svc.cluster.local",
-        port=8080,
+        server_address="https://fraud-detection-rest.apps.rosa.hbelmiro-2.4osv.p3.openshiftapps.com",
         author="fraud-detection-e2e-pipeline",
-        user_token="non-used",  # Just to avoid a warning
-        is_secure=True
+        # user_token=token,
+        is_secure=False,
+        # custom_ca=ca_path
     )
+
+    logging.info("serving model: {}".format(model_name))
+    logging.info("model_version: {}".format(model_version_name))
 
     model = registry.get_registered_model(model_name)
     model_version = registry.get_model_version(model_name, model_version_name)

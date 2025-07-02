@@ -4,13 +4,13 @@ kind: Kustomization
 namespace: rhoai-model-registries
 
 resources:
-  - namespace.yaml
   - mysql-configmap.yaml
   - mysql-secret.yaml
   - mysql-pvc.yaml
   - mysql-deployment.yaml
   - mysql-service.yaml
 
-commonLabels:
-  app: model-registry-mysql
-  component: database 
+labels:
+  - pairs:
+      app: model-registry-mysql
+      component: database 
