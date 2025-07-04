@@ -16,7 +16,7 @@ Other images used in the pipeline have their code in corresponding directories. 
 
 ### Prerequisites
 
-- Red Hat OpenShift Service Mesh 3
+- Red Hat OpenShift Service Mesh 2
 - Red Hat OpenShift Serverless
 - Red Hat Authorino Operator
 - Red Hat OpenShift AI
@@ -81,6 +81,8 @@ mlpipeline
 ## Create the Model Registry
 
 Web Console > Settings > Model registry settings
+
+## Set permission to `fraud-detection` project
 
 ## Compile the pipeline
 

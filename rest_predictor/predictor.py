@@ -80,14 +80,46 @@ class ONNXModel(kserve.Model):
         self.load()
 
     def load(self):
+        token = None
+        
+        # Try to read the service account token from environment variable first
+        token = os.getenv("KSERVE_SERVICE_ACCOUNT_TOKEN")
+        if token:
+            # Token from environment is already decoded by Kubernetes, use it directly
+            print("Successfully read service account token from environment variable")
+            token = token.strip()  # Remove any whitespace
+        
+        # Fallback: try to read the service account token file  
+        if not token:
+            try:
+                with open("/var/run/secrets/kubernetes.io/serviceaccount/token", "r") as token_file:
+                    token = token_file.read()
+                    print("Successfully read service account token from file")
+            except FileNotFoundError:
+                print("Service account token file not found")
+                token = None
+
         # Download the model from the registry
-        registry = ModelRegistry(
-            server_address="http://model-registry-service.fraud-detection.svc.cluster.local",
-            port=8080,
-            author="fraud-detection-e2e-pipeline",
-            user_token="non-used",  # Just to avoid a warning
-            is_secure=False
-        )
+        try:
+            if token:
+                print("Using service account token for Model Registry authentication")
+                registry = ModelRegistry(
+                    server_address="https://fraud-detection-rest.apps.rosa.hbelmiro.g9ax.p3.openshiftapps.com",
+                    author="fraud-detection-e2e-pipeline",
+                    user_token=token,
+                    is_secure=False,
+                )
+            else:
+                # Try without authentication as a fallback
+                print("Attempting to connect to Model Registry without authentication")
+                registry = ModelRegistry(
+                    server_address="https://fraud-detection-rest.apps.rosa.hbelmiro.g9ax.p3.openshiftapps.com",
+                    author="fraud-detection-e2e-pipeline",
+                    is_secure=False,
+                )
+        except Exception as registry_error:
+            print(f"Failed to initialize Model Registry: {registry_error}")
+            raise RuntimeError(f"Cannot connect to Model Registry: {registry_error}")
 
         model_artifact = registry.get_model_artifact(self.model_name, self.model_version_name)
         download(model_artifact.uri)

@@ -11,7 +11,7 @@ spec:
       configMapKey: ca.crt
       configMapName: kube-root-ca.crt
   objectStorage:
-    enableExternalRoute: true
+    enableExternalRoute: false
     minio:
       deploy: true
       image: 'quay.io/opendatahub/minio:RELEASE.2019-08-14T20-37-41Z-license-compliance'

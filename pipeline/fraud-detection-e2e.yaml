@@ -199,7 +199,7 @@ deploymentSpec:
           \ line {i+1}: {line.strip()}\")\n        return dest_path\n\n    ca_path\
           \ = fetch_ca_bundle()\n\n    with open(\"/var/run/secrets/kubernetes.io/serviceaccount/token\"\
           , \"r\") as token_file:\n        token = token_file.read()\n\n    registry\
-          \ = ModelRegistry(\n        server_address=\"https://fraud-detection-rest.apps.rosa.hbelmiro-2.4osv.p3.openshiftapps.com\"\
+          \ = ModelRegistry(\n        server_address=\"https://fraud-detection-rest.apps.rosa.hbelmiro.g9ax.p3.openshiftapps.com\"\
           ,\n        author=\"fraud-detection-e2e-pipeline\",\n        user_token=token,\n\
           \        is_secure=False,\n        # custom_ca=ca_path\n    )\n\n    model_name\
           \ = \"fraud-detection\"\n    model_version = \"{{workflow.uid}}\"\n    registry.register_model(\n\
@@ -318,16 +318,34 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef serve(model_name: str, model_version_name: str, job_id: str,\
           \ rest_predictor_image: str):\n    import logging\n    import kserve\n \
-          \   from kubernetes import client\n    from kubernetes.client import V1Container\n\
-          \    from model_registry import ModelRegistry\n\n    with open(\"/var/run/secrets/kubernetes.io/serviceaccount/token\"\
+          \   from kubernetes import client\n    from kubernetes.client import V1Container,\
+          \ V1EnvVar, V1SecretKeySelector\n    from model_registry import ModelRegistry\n\
+          \    import base64\n\n    def create_token_secret(token: str, job_id: str)\
+          \ -> str:\n        \"\"\"Create a Kubernetes secret with the service account\
+          \ token and return the secret name.\"\"\"\n        from kubernetes import\
+          \ config\n        config.load_incluster_config()\n        v1 = client.CoreV1Api()\n\
+          \        secret_name = f\"kserve-token-{job_id[:8]}\"\n\n        secret\
+          \ = client.V1Secret(\n            metadata=client.V1ObjectMeta(\n      \
+          \          name=secret_name,\n                namespace=\"fraud-detection\"\
+          \n            ),\n            type=\"Opaque\",\n            data={\n   \
+          \             \"token\": base64.b64encode(token.strip().encode()).decode()\n\
+          \            }\n        )\n\n        try:\n            v1.create_namespaced_secret(namespace=\"\
+          fraud-detection\", body=secret)\n            logging.info(f\"Created secret\
+          \ {secret_name} with service account token\")\n        except client.rest.ApiException\
+          \ as e:\n            if e.status == 409:  # Already exists\n           \
+          \     v1.patch_namespaced_secret(name=secret_name, namespace=\"fraud-detection\"\
+          , body=secret)\n                logging.info(f\"Updated existing secret\
+          \ {secret_name}\")\n            else:\n                raise\n\n       \
+          \ return secret_name\n\n    with open(\"/var/run/secrets/kubernetes.io/serviceaccount/token\"\
           , \"r\") as token_file:\n        token = token_file.read()\n\n    registry\
-          \ = ModelRegistry(\n        server_address=\"https://fraud-detection-rest.apps.rosa.hbelmiro-2.4osv.p3.openshiftapps.com\"\
+          \ = ModelRegistry(\n        server_address=\"https://fraud-detection-rest.apps.rosa.hbelmiro.g9ax.p3.openshiftapps.com\"\
           ,\n        author=\"fraud-detection-e2e-pipeline\",\n        user_token=token,\n\
           \        is_secure=False,\n        # custom_ca=ca_path\n    )\n\n    logging.info(\"\
           serving model: {}\".format(model_name))\n    logging.info(\"model_version:\
           \ {}\".format(model_version_name))\n\n    model = registry.get_registered_model(model_name)\n\
           \    model_version = registry.get_model_version(model_name, model_version_name)\n\
-          \n    inference_service = kserve.V1beta1InferenceService(\n        api_version=kserve.constants.KSERVE_GROUP\
+          \n    token_secret_name = create_token_secret(token, job_id)\n\n    inference_service\
+          \ = kserve.V1beta1InferenceService(\n        api_version=kserve.constants.KSERVE_GROUP\
           \ + \"/v1beta1\",\n        kind=\"InferenceService\",\n        metadata=client.V1ObjectMeta(\n\
           \            name=\"fd\",\n            namespace=\"fraud-detection\",\n\
           \            labels={\n                \"modelregistry/registered-model-id\"\
@@ -338,9 +356,17 @@ deploymentSpec:
           \                        name=\"inference-container\",\n               \
           \         image=rest_predictor_image,\n                        command=[\"\
           python\", \"predictor.py\"],\n                        args=[\"--model-name\"\
-          , model_name, \"--model-version\", model_version_name]\n               \
-          \     )\n                ]\n            )\n        ),\n    )\n    ks_client\
-          \ = kserve.KServeClient()\n    ks_client.create(inference_service)\n\n"
+          , model_name, \"--model-version\", model_version_name],\n              \
+          \          env=[\n                            V1EnvVar(\n              \
+          \                  name=\"KSERVE_SERVICE_ACCOUNT_TOKEN\",\n            \
+          \                    value_from=client.V1EnvVarSource(\n               \
+          \                     secret_key_ref=V1SecretKeySelector(\n            \
+          \                            name=token_secret_name,\n                 \
+          \                       key=\"token\"\n                                \
+          \    )\n                                )\n                            )\n\
+          \                        ]\n                    )\n                ]\n \
+          \           )\n        ),\n    )\n    ks_client = kserve.KServeClient()\n\
+          \    ks_client.create(inference_service)\n\n"
         image: quay.io/hbelmiro/fraud-detection-e2e-demo-pipeline-rhoai:latest
     exec-train-model:
       container:

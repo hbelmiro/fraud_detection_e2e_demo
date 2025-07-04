@@ -255,7 +255,7 @@ def register_model(model: Input[Model]) -> NamedTuple('outputs', model_name=str,
         token = token_file.read()
 
     registry = ModelRegistry(
-        server_address="https://fraud-detection-rest.apps.rosa.hbelmiro-2.4osv.p3.openshiftapps.com",
+        server_address="https://fraud-detection-rest.apps.rosa.hbelmiro.g9ax.p3.openshiftapps.com",
         author="fraud-detection-e2e-pipeline",
         user_token=token,
         is_secure=False,
@@ -289,14 +289,45 @@ def serve(model_name: str, model_version_name: str, job_id: str, rest_predictor_
     import logging
     import kserve
     from kubernetes import client
-    from kubernetes.client import V1Container
+    from kubernetes.client import V1Container, V1EnvVar, V1SecretKeySelector
     from model_registry import ModelRegistry
+    import base64
+
+    def create_token_secret(token: str, job_id: str) -> str:
+        """Create a Kubernetes secret with the service account token and return the secret name."""
+        from kubernetes import config
+        config.load_incluster_config()
+        v1 = client.CoreV1Api()
+        secret_name = f"kserve-token-{job_id[:8]}"
+        
+        secret = client.V1Secret(
+            metadata=client.V1ObjectMeta(
+                name=secret_name,
+                namespace="fraud-detection"
+            ),
+            type="Opaque",
+            data={
+                "token": base64.b64encode(token.strip().encode()).decode()
+            }
+        )
+        
+        try:
+            v1.create_namespaced_secret(namespace="fraud-detection", body=secret)
+            logging.info(f"Created secret {secret_name} with service account token")
+        except client.rest.ApiException as e:
+            if e.status == 409:  # Already exists
+                v1.patch_namespaced_secret(name=secret_name, namespace="fraud-detection", body=secret)
+                logging.info(f"Updated existing secret {secret_name}")
+            else:
+                raise
+        
+        return secret_name
 
     with open("/var/run/secrets/kubernetes.io/serviceaccount/token", "r") as token_file:
         token = token_file.read()
 
     registry = ModelRegistry(
-        server_address="https://fraud-detection-rest.apps.rosa.hbelmiro-2.4osv.p3.openshiftapps.com",
+        server_address="https://fraud-detection-rest.apps.rosa.hbelmiro.g9ax.p3.openshiftapps.com",
         author="fraud-detection-e2e-pipeline",
         user_token=token,
         is_secure=False,
@@ -308,6 +339,8 @@ def serve(model_name: str, model_version_name: str, job_id: str, rest_predictor_
 
     model = registry.get_registered_model(model_name)
     model_version = registry.get_model_version(model_name, model_version_name)
+
+    token_secret_name = create_token_secret(token, job_id)
 
     inference_service = kserve.V1beta1InferenceService(
         api_version=kserve.constants.KSERVE_GROUP + "/v1beta1",
@@ -328,7 +361,18 @@ def serve(model_name: str, model_version_name: str, job_id: str, rest_predictor_
                         name="inference-container",
                         image=rest_predictor_image,
                         command=["python", "predictor.py"],
-                        args=["--model-name", model_name, "--model-version", model_version_name]
+                        args=["--model-name", model_name, "--model-version", model_version_name],
+                        env=[
+                            V1EnvVar(
+                                name="KSERVE_SERVICE_ACCOUNT_TOKEN",
+                                value_from=client.V1EnvVarSource(
+                                    secret_key_ref=V1SecretKeySelector(
+                                        name=token_secret_name,
+                                        key="token"
+                                    )
+                                )
+                            )
+                        ]
                     )
                 ]
             )

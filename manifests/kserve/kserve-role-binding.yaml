@@ -11,3 +11,6 @@ subjects:
 - kind: ServiceAccount
   name: pipeline-runner-sample
   namespace: fraud-detection
+- kind: ServiceAccount
+  name: kserve-sa
+  namespace: fraud-detection
