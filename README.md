@@ -98,20 +98,12 @@ kfp pipeline upload -p fraud-detection-e2e fraud-detection-e2e.yaml
 
 ## Run the pipeline
 
-## Port-forward the inference pod
-
-```shell
-kubectl -n fraud-detection get pods -l component=predictor -o jsonpath="{.items[*].metadata.name}" | tr ' ' '\n' | grep '^fraud-detection' | head -n1 | xargs -I {} kubectl port-forward -n fraud-detection pod/{} 8081:8080
-```
-
 ### Run Test Requests
-
-With the port-forward active, test the deployed model:
 
 #### Example 1: Checking a User with Potential Fraud
 
 ```shell
-curl -i -X POST http://localhost:8081/v1/models/onnx-model:predict -H "Content-Type: application/json" -d '{"user_id": "user_0"}'
+curl -i -X POST $(kubectl -n fraud-detection get ksvc fd-predictor -o jsonpath='{.status.url}')/v1/models/onnx-model:predict -H "Content-Type: application/json" -d '{"user_id": "user_0"}'
 ```
 
 The request only contains the user ID. The predictor will:
@@ -136,7 +128,7 @@ The prediction value close to 1.0 indicates a high probability of fraud for the 
 #### Example 2: Checking a User with Likely Non-Fraudulent Activity
 
 ```shell
-curl -i -X POST http://localhost:8081/v1/models/onnx-model:predict -H "Content-Type: application/json" -d '{"user_id": "user_1"}'
+curl -i -X POST $(kubectl -n fraud-detection get ksvc fd-predictor -o jsonpath='{.status.url}')/v1/models/onnx-model:predict -H "Content-Type: application/json" -d '{"user_id": "user_1"}'
 ```
 
 Expected output:
