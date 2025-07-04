@@ -350,7 +350,8 @@ deploymentSpec:
           \            name=\"fd\",\n            namespace=\"fraud-detection\",\n\
           \            labels={\n                \"modelregistry/registered-model-id\"\
           : model.id,\n                \"modelregistry/model-version-id\": model_version.id\n\
-          \            },\n        ),\n        spec=kserve.V1beta1InferenceServiceSpec(\n\
+          \            },\n            annotations={\n                \"sidecar.istio.io/inject\"\
+          : \"false\"\n            },\n        ),\n        spec=kserve.V1beta1InferenceServiceSpec(\n\
           \            predictor=kserve.V1beta1PredictorSpec(\n                service_account_name=\"\
           kserve-sa\",\n                containers=[\n                    V1Container(\n\
           \                        name=\"inference-container\",\n               \

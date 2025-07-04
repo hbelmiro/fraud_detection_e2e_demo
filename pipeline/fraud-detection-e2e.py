@@ -352,6 +352,9 @@ def serve(model_name: str, model_version_name: str, job_id: str, rest_predictor_
                 "modelregistry/registered-model-id": model.id,
                 "modelregistry/model-version-id": model_version.id
             },
+            annotations={
+                "sidecar.istio.io/inject": "false"
+            },
         ),
         spec=kserve.V1beta1InferenceServiceSpec(
             predictor=kserve.V1beta1PredictorSpec(
