@@ -10,7 +10,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
 COPY predictor.py .
 
 USER root
-RUN chown 1001:0 /app && \
-    chmod u+w /app
+RUN chown -R 1001:0 /app && \
+    chmod -R 775 /app
 
 USER default
