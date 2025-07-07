@@ -19,7 +19,7 @@ Other images used in the pipeline have their code in corresponding directories. 
 - Red Hat OpenShift Service Mesh 2
 - Red Hat OpenShift Serverless
 - Red Hat Authorino Operator
-- Red Hat OpenShift AI
+- Red Hat OpenShift AI 2.21 (fast channel)
 
 ## Create a Kind cluster
 

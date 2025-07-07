@@ -2,10 +2,13 @@
 
 set -euo pipefail
 
+helm repo update
+
 # Install Kubeflow Spark Operator
 helm install spark-operator spark-operator/spark-operator \
     --namespace spark-operator \
     --create-namespace \
+    --version 2.1.1 \
     --set webhook.enable=true
 
 # Make sure the Kubeflow Spark Operator is watching the fraud-detection namespace. Run this command to let it watch all namespaces:

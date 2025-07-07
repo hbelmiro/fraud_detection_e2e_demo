@@ -255,7 +255,7 @@ def register_model(model: Input[Model]) -> NamedTuple('outputs', model_name=str,
         token = token_file.read()
 
     registry = ModelRegistry(
-        server_address="https://fraud-detection-rest.apps.rosa.hbelmiro.g9ax.p3.openshiftapps.com",
+        server_address="https://fraud-detection-rest.apps.rosa.hbelmiro-2.swih.p3.openshiftapps.com",
         author="fraud-detection-e2e-pipeline",
         user_token=token,
         is_secure=False,
@@ -327,7 +327,7 @@ def serve(model_name: str, model_version_name: str, job_id: str, rest_predictor_
         token = token_file.read()
 
     registry = ModelRegistry(
-        server_address="https://fraud-detection-rest.apps.rosa.hbelmiro.g9ax.p3.openshiftapps.com",
+        server_address="https://fraud-detection-rest.apps.rosa.hbelmiro-2.swih.p3.openshiftapps.com",
         author="fraud-detection-e2e-pipeline",
         user_token=token,
         is_secure=False,

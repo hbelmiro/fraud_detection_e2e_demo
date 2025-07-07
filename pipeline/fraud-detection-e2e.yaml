@@ -199,7 +199,7 @@ deploymentSpec:
           \ line {i+1}: {line.strip()}\")\n        return dest_path\n\n    ca_path\
           \ = fetch_ca_bundle()\n\n    with open(\"/var/run/secrets/kubernetes.io/serviceaccount/token\"\
           , \"r\") as token_file:\n        token = token_file.read()\n\n    registry\
-          \ = ModelRegistry(\n        server_address=\"https://fraud-detection-rest.apps.rosa.hbelmiro.g9ax.p3.openshiftapps.com\"\
+          \ = ModelRegistry(\n        server_address=\"https://fraud-detection-rest.apps.rosa.hbelmiro-2.swih.p3.openshiftapps.com\"\
           ,\n        author=\"fraud-detection-e2e-pipeline\",\n        user_token=token,\n\
           \        is_secure=False,\n        # custom_ca=ca_path\n    )\n\n    model_name\
           \ = \"fraud-detection\"\n    model_version = \"{{workflow.uid}}\"\n    registry.register_model(\n\
@@ -338,7 +338,7 @@ deploymentSpec:
           \ {secret_name}\")\n            else:\n                raise\n\n       \
           \ return secret_name\n\n    with open(\"/var/run/secrets/kubernetes.io/serviceaccount/token\"\
           , \"r\") as token_file:\n        token = token_file.read()\n\n    registry\
-          \ = ModelRegistry(\n        server_address=\"https://fraud-detection-rest.apps.rosa.hbelmiro.g9ax.p3.openshiftapps.com\"\
+          \ = ModelRegistry(\n        server_address=\"https://fraud-detection-rest.apps.rosa.hbelmiro-2.swih.p3.openshiftapps.com\"\
           ,\n        author=\"fraud-detection-e2e-pipeline\",\n        user_token=token,\n\
           \        is_secure=False,\n        # custom_ca=ca_path\n    )\n\n    logging.info(\"\
           serving model: {}\".format(model_name))\n    logging.info(\"model_version:\

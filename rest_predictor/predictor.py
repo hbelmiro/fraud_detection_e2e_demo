@@ -104,7 +104,7 @@ class ONNXModel(kserve.Model):
             if token:
                 print("Using service account token for Model Registry authentication")
                 registry = ModelRegistry(
-                    server_address="https://fraud-detection-rest.apps.rosa.hbelmiro.g9ax.p3.openshiftapps.com",
+                    server_address="https://fraud-detection-rest.apps.rosa.hbelmiro-2.swih.p3.openshiftapps.com",
                     author="fraud-detection-e2e-pipeline",
                     user_token=token,
                     is_secure=False,
@@ -113,7 +113,7 @@ class ONNXModel(kserve.Model):
                 # Try without authentication as a fallback
                 print("Attempting to connect to Model Registry without authentication")
                 registry = ModelRegistry(
-                    server_address="https://fraud-detection-rest.apps.rosa.hbelmiro.g9ax.p3.openshiftapps.com",
+                    server_address="https://fraud-detection-rest.apps.rosa.hbelmiro-2.swih.p3.openshiftapps.com",
                     author="fraud-detection-e2e-pipeline",
                     is_secure=False,
                 )
