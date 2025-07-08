@@ -7,13 +7,6 @@ subjects:
 - kind: ServiceAccount
   name: pipeline-runner-sample
   namespace: fraud-detection
-
-# notebook - remove it
-- kind: ServiceAccount
-  name: fraud-detection-nb
-  namespace: fraud-detection
-# end of notebook
-
 roleRef:
   kind: Role
   name: read-configmaps
@@ -32,9 +25,3 @@ subjects:
 - kind: ServiceAccount
   name: pipeline-runner-sample
   namespace: fraud-detection 
-
-# notebook - remove it
-- kind: ServiceAccount
-  name: fraud-detection-nb
-  namespace: fraud-detection
-# end of notebook

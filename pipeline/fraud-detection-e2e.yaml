@@ -179,7 +179,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef register_model(model: Input[Model]) -> NamedTuple('outputs',\
           \ model_name=str, model_version=str):\n    from model_registry import ModelRegistry\n\
-          \    import os\n    from kubernetes import client, config\n\n    def get_model_registry_url():\n\
+          \    from kubernetes import client, config\n\n    def get_model_registry_url():\n\
           \        \"\"\"Get the model registry URL from the Kubernetes service annotation.\"\
           \"\"\n        try:\n            config.load_incluster_config()\n       \
           \     v1 = client.CoreV1Api()\n\n            service = v1.read_namespaced_service(\n\
@@ -191,31 +191,13 @@ deploymentSpec:
           \            if ':' in url:\n                url = url.split(':')[0]\n\n\
           \            return f\"https://{url}\"\n        except Exception as e:\n\
           \            raise Exception(f\"Error getting model registry URL: {e}\"\
-          )\n\n    def fetch_ca_bundle(namespace=\"redhat-ods-applications\", configmap_name=\"\
-          odh-trusted-ca-bundle\", key=\"ca-bundle.crt\", dest_path=\"/tmp/odh-ca-bundle.crt\"\
-          ):\n        config.load_incluster_config()\n        v1 = client.CoreV1Api()\n\
-          \        cm = v1.read_namespaced_config_map(configmap_name, namespace)\n\
-          \        print(f\"ConfigMap keys: {list(cm.data.keys())}\")\n        if\
-          \ key not in cm.data:\n            print(f\"ERROR: Key '{key}' not found\
-          \ in ConfigMap '{configmap_name}'. Available keys: {list(cm.data.keys())}\"\
-          )\n            raise KeyError(f\"Key '{key}' not found in ConfigMap '{configmap_name}'\"\
-          )\n        ca_bundle = cm.data[key]\n        print(f\"Length of CA bundle\
-          \ value: {len(ca_bundle) if ca_bundle is not None else 'None'}\")\n    \
-          \    if ca_bundle is None or not ca_bundle.strip():\n            raise ValueError(f\"\
-          CA bundle value for key '{key}' in ConfigMap '{configmap_name}' is None\
-          \ or empty!\")\n        with open(dest_path, \"w\") as f:\n            f.write(ca_bundle)\n\
-          \        print(f\"CA bundle written to {dest_path}, size: {os.path.getsize(dest_path)}\
-          \ bytes\")\n        with open(dest_path, \"r\") as f:\n            for i\
-          \ in range(5):\n                line = f.readline()\n                if\
-          \ not line:\n                    break\n                print(f\"CA bundle\
-          \ line {i+1}: {line.strip()}\")\n        return dest_path\n\n    ca_path\
-          \ = fetch_ca_bundle()\n\n    with open(\"/var/run/secrets/kubernetes.io/serviceaccount/token\"\
+          )\n\n    with open(\"/var/run/secrets/kubernetes.io/serviceaccount/token\"\
           , \"r\") as token_file:\n        token = token_file.read()\n\n    model_registry_url\
           \ = get_model_registry_url()\n    print(f\"Using model registry URL: {model_registry_url}\"\
           )\n\n    registry = ModelRegistry(\n        server_address=model_registry_url,\n\
           \        author=\"fraud-detection-e2e-pipeline\",\n        user_token=token,\n\
-          \        is_secure=False,\n        # custom_ca=ca_path\n    )\n\n    model_name\
-          \ = \"fraud-detection\"\n    model_version = \"{{workflow.uid}}\"\n    registry.register_model(\n\
+          \        is_secure=False,\n    )\n\n    model_name = \"fraud-detection\"\
+          \n    model_version = \"{{workflow.uid}}\"\n    registry.register_model(\n\
           \        name=model_name,\n        uri=model.uri,\n        version=model_version,\n\
           \        description=\"lorem ipsum\",\n        model_format_name=\"onnx\"\
           ,\n        model_format_version=\"1\",\n        storage_key=\"mlpipeline-minio-artifact\"\
@@ -366,13 +348,13 @@ deploymentSpec:
           \ = get_model_registry_url()\n    print(f\"Using model registry URL: {model_registry_url}\"\
           )\n\n    registry = ModelRegistry(\n        server_address=model_registry_url,\n\
           \        author=\"fraud-detection-e2e-pipeline\",\n        user_token=token,\n\
-          \        is_secure=False,\n        # custom_ca=ca_path\n    )\n\n    logging.info(\"\
-          serving model: {}\".format(model_name))\n    logging.info(\"model_version:\
-          \ {}\".format(model_version_name))\n\n    model = registry.get_registered_model(model_name)\n\
-          \    model_version = registry.get_model_version(model_name, model_version_name)\n\
-          \n    token_secret_name = create_token_secret(token, job_id)\n\n    inference_service\
-          \ = kserve.V1beta1InferenceService(\n        api_version=kserve.constants.KSERVE_GROUP\
-          \ + \"/v1beta1\",\n        kind=\"InferenceService\",\n        metadata=client.V1ObjectMeta(\n\
+          \        is_secure=False,\n    )\n\n    logging.info(\"serving model: {}\"\
+          .format(model_name))\n    logging.info(\"model_version: {}\".format(model_version_name))\n\
+          \n    model = registry.get_registered_model(model_name)\n    model_version\
+          \ = registry.get_model_version(model_name, model_version_name)\n\n    token_secret_name\
+          \ = create_token_secret(token, job_id)\n\n    inference_service = kserve.V1beta1InferenceService(\n\
+          \        api_version=kserve.constants.KSERVE_GROUP + \"/v1beta1\",\n   \
+          \     kind=\"InferenceService\",\n        metadata=client.V1ObjectMeta(\n\
           \            name=\"fd\",\n            namespace=\"fraud-detection\",\n\
           \            labels={\n                \"modelregistry/registered-model-id\"\
           : model.id,\n                \"modelregistry/model-version-id\": model_version.id\n\

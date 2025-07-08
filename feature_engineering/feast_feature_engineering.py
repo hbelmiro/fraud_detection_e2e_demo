@@ -98,7 +98,6 @@ def download_artifacts(directory_path, dest):
     objects = client.list_objects(MINIO_BUCKET, prefix=directory_path, recursive=True)
 
     for obj in objects:
-        # Handle directory objects by creating the directory structure
         if obj.object_name.endswith('/'):
             print(f"Creating directory: {obj.object_name}")
             dir_path = os.path.join(dest, obj.object_name.replace(directory_path, "").lstrip("/"))

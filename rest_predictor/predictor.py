@@ -9,10 +9,7 @@ import numpy as np
 import onnxruntime as ort
 from botocore.client import Config
 from feast import FeatureStore
-from kserve import InferRequest
-from kserve.protocol.grpc.grpc_predict_v2_pb2 import ModelInferRequest
 from model_registry import ModelRegistry
-
 
 
 def download(artifact_uri):
@@ -82,8 +79,6 @@ class ONNXModel(kserve.Model):
         self.load()
 
     def load(self):
-        token = None
-        
         # Try to read the service account token from environment variable first
         token = os.getenv("KSERVE_SERVICE_ACCOUNT_TOKEN")
         if token:

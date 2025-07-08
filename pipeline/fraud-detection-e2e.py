@@ -223,7 +223,6 @@ def train_model(dataset: Input[Dataset], model: Output[Model]):
 @dsl.component(base_image=PIPELINE_IMAGE)
 def register_model(model: Input[Model]) -> NamedTuple('outputs', model_name=str, model_version=str):
     from model_registry import ModelRegistry
-    import os
     from kubernetes import client, config
 
     def get_model_registry_url():
@@ -251,31 +250,6 @@ def register_model(model: Input[Model]) -> NamedTuple('outputs', model_name=str,
         except Exception as e:
             raise Exception(f"Error getting model registry URL: {e}")
 
-    def fetch_ca_bundle(namespace="redhat-ods-applications", configmap_name="odh-trusted-ca-bundle", key="ca-bundle.crt", dest_path="/tmp/odh-ca-bundle.crt"):
-        config.load_incluster_config()
-        v1 = client.CoreV1Api()
-        cm = v1.read_namespaced_config_map(configmap_name, namespace)
-        print(f"ConfigMap keys: {list(cm.data.keys())}")
-        if key not in cm.data:
-            print(f"ERROR: Key '{key}' not found in ConfigMap '{configmap_name}'. Available keys: {list(cm.data.keys())}")
-            raise KeyError(f"Key '{key}' not found in ConfigMap '{configmap_name}'")
-        ca_bundle = cm.data[key]
-        print(f"Length of CA bundle value: {len(ca_bundle) if ca_bundle is not None else 'None'}")
-        if ca_bundle is None or not ca_bundle.strip():
-            raise ValueError(f"CA bundle value for key '{key}' in ConfigMap '{configmap_name}' is None or empty!")
-        with open(dest_path, "w") as f:
-            f.write(ca_bundle)
-        print(f"CA bundle written to {dest_path}, size: {os.path.getsize(dest_path)} bytes")
-        with open(dest_path, "r") as f:
-            for i in range(5):
-                line = f.readline()
-                if not line:
-                    break
-                print(f"CA bundle line {i+1}: {line.strip()}")
-        return dest_path
-
-    ca_path = fetch_ca_bundle()
-
     with open("/var/run/secrets/kubernetes.io/serviceaccount/token", "r") as token_file:
         token = token_file.read()
 
@@ -287,7 +261,6 @@ def register_model(model: Input[Model]) -> NamedTuple('outputs', model_name=str,
         author="fraud-detection-e2e-pipeline",
         user_token=token,
         is_secure=False,
-        # custom_ca=ca_path
     )
 
     model_name = "fraud-detection"
@@ -387,7 +360,6 @@ def serve(model_name: str, model_version_name: str, job_id: str, rest_predictor_
         author="fraud-detection-e2e-pipeline",
         user_token=token,
         is_secure=False,
-        # custom_ca=ca_path
     )
 
     logging.info("serving model: {}".format(model_name))
