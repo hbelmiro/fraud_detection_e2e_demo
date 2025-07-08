@@ -14,6 +14,7 @@ from kserve.protocol.grpc.grpc_predict_v2_pb2 import ModelInferRequest
 from model_registry import ModelRegistry
 
 
+
 def download(artifact_uri):
     minio_endpoint = "http://minio-service.fraud-detection.svc.cluster.local:9000"
     access_key = "minio"
@@ -70,10 +71,11 @@ def download_feature_repo():
 
 
 class ONNXModel(kserve.Model):
-    def __init__(self, name: str, model_name: str, model_version_name: str):
+    def __init__(self, name: str, model_name: str, model_version_name: str, model_registry_url: str):
         super().__init__(name)
         self.model_name = model_name
         self.model_version_name = model_version_name
+        self.model_registry_url = model_registry_url
         self.model = None
         self.feature_store = None
         self.ready = False
@@ -101,10 +103,12 @@ class ONNXModel(kserve.Model):
 
         # Download the model from the registry
         try:
+            print(f"Using model registry URL: {self.model_registry_url}")
+            
             if token:
                 print("Using service account token for Model Registry authentication")
                 registry = ModelRegistry(
-                    server_address="https://fraud-detection-rest.apps.rosa.hbelmiro-2.swih.p3.openshiftapps.com",
+                    server_address=self.model_registry_url,
                     author="fraud-detection-e2e-pipeline",
                     user_token=token,
                     is_secure=False,
@@ -113,7 +117,7 @@ class ONNXModel(kserve.Model):
                 # Try without authentication as a fallback
                 print("Attempting to connect to Model Registry without authentication")
                 registry = ModelRegistry(
-                    server_address="https://fraud-detection-rest.apps.rosa.hbelmiro-2.swih.p3.openshiftapps.com",
+                    server_address=self.model_registry_url,
                     author="fraud-detection-e2e-pipeline",
                     is_secure=False,
                 )
@@ -203,7 +207,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--model-name", required=True, help="Name of the model to serve")
     parser.add_argument("--model-version", required=True, help="Version of the model to serve")
+    parser.add_argument("--model-registry-url", required=True, help="Model registry URL")
     args = parser.parse_args()
 
-    model = ONNXModel("onnx-model", args.model_name, args.model_version)
+    model = ONNXModel("onnx-model", args.model_name, args.model_version, args.model_registry_url)
     kserve.ModelServer().start([model])

@@ -226,6 +226,31 @@ def register_model(model: Input[Model]) -> NamedTuple('outputs', model_name=str,
     import os
     from kubernetes import client, config
 
+    def get_model_registry_url():
+        """Get the model registry URL from the Kubernetes service annotation."""
+        try:
+            config.load_incluster_config()
+            v1 = client.CoreV1Api()
+            
+            service = v1.read_namespaced_service(
+                name="fraud-detection",
+                namespace="rhoai-model-registries"
+            )
+            
+            annotations = service.metadata.annotations or {}
+            url = annotations.get("routing.opendatahub.io/external-address-rest")
+            
+            if not url:
+                raise ValueError("Model registry URL annotation not found")
+            
+            # Remove port if present
+            if ':' in url:
+                url = url.split(':')[0]
+            
+            return f"https://{url}"
+        except Exception as e:
+            raise Exception(f"Error getting model registry URL: {e}")
+
     def fetch_ca_bundle(namespace="redhat-ods-applications", configmap_name="odh-trusted-ca-bundle", key="ca-bundle.crt", dest_path="/tmp/odh-ca-bundle.crt"):
         config.load_incluster_config()
         v1 = client.CoreV1Api()
@@ -254,8 +279,11 @@ def register_model(model: Input[Model]) -> NamedTuple('outputs', model_name=str,
     with open("/var/run/secrets/kubernetes.io/serviceaccount/token", "r") as token_file:
         token = token_file.read()
 
+    model_registry_url = get_model_registry_url()
+    print(f"Using model registry URL: {model_registry_url}")
+
     registry = ModelRegistry(
-        server_address="https://fraud-detection-rest.apps.rosa.hbelmiro-2.swih.p3.openshiftapps.com",
+        server_address=model_registry_url,
         author="fraud-detection-e2e-pipeline",
         user_token=token,
         is_secure=False,
@@ -288,10 +316,35 @@ def register_model(model: Input[Model]) -> NamedTuple('outputs', model_name=str,
 def serve(model_name: str, model_version_name: str, job_id: str, rest_predictor_image: str):
     import logging
     import kserve
-    from kubernetes import client
+    from kubernetes import client, config
     from kubernetes.client import V1Container, V1EnvVar, V1SecretKeySelector
     from model_registry import ModelRegistry
     import base64
+
+    def get_model_registry_url():
+        """Get the model registry URL from the Kubernetes service annotation."""
+        try:
+            config.load_incluster_config()
+            v1 = client.CoreV1Api()
+            
+            service = v1.read_namespaced_service(
+                name="fraud-detection",
+                namespace="rhoai-model-registries"
+            )
+            
+            annotations = service.metadata.annotations or {}
+            url = annotations.get("routing.opendatahub.io/external-address-rest")
+            
+            if not url:
+                raise ValueError("Model registry URL annotation not found")
+            
+            # Remove port if present
+            if ':' in url:
+                url = url.split(':')[0]
+            
+            return f"https://{url}"
+        except Exception as e:
+            raise Exception(f"Error getting model registry URL: {e}")
 
     def create_token_secret(token: str, job_id: str) -> str:
         """Create a Kubernetes secret with the service account token and return the secret name."""
@@ -326,8 +379,11 @@ def serve(model_name: str, model_version_name: str, job_id: str, rest_predictor_
     with open("/var/run/secrets/kubernetes.io/serviceaccount/token", "r") as token_file:
         token = token_file.read()
 
+    model_registry_url = get_model_registry_url()
+    print(f"Using model registry URL: {model_registry_url}")
+
     registry = ModelRegistry(
-        server_address="https://fraud-detection-rest.apps.rosa.hbelmiro-2.swih.p3.openshiftapps.com",
+        server_address=model_registry_url,
         author="fraud-detection-e2e-pipeline",
         user_token=token,
         is_secure=False,
@@ -364,7 +420,7 @@ def serve(model_name: str, model_version_name: str, job_id: str, rest_predictor_
                         name="inference-container",
                         image=rest_predictor_image,
                         command=["python", "predictor.py"],
-                        args=["--model-name", model_name, "--model-version", model_version_name],
+                        args=["--model-name", model_name, "--model-version", model_version_name, "--model-registry-url", model_registry_url],
                         env=[
                             V1EnvVar(
                                 name="KSERVE_SERVICE_ACCOUNT_TOKEN",
