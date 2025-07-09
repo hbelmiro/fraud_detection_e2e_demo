@@ -34,8 +34,10 @@ curl -s "https://raw.githubusercontent.com/kserve/kserve/release-0.15/hack/quick
 oc project kubeflow
 
 # Install Kubeflow Spark Operator
+helm repo add --force-update spark-operator https://kubeflow.github.io/spark-operator
 helm install spark-operator spark-operator/spark-operator \
     --namespace spark-operator \
+    --version 2.1.1 \
     --create-namespace
 
 # Make sure the Kubeflow Spark Operator is watching the kubeflow namespace. Run this command to let it watch all namespaces:
