@@ -1,8 +1,0 @@
-.idea
-.venv
-*.pyc
-*.pyo
-feature_repo/.idea
-feature_repo/.DS_Store
-feature_repo/__pycache__
-feature_repo/data/
