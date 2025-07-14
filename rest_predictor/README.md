@@ -1,1 +1,0 @@
-https://github.com/hbelmiro/kserve-onnx-predictor-demo

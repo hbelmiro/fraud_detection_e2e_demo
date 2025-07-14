@@ -1,12 +1,3 @@
-# Byte-compiled / optimized / DLL files
-__pycache__/
-*.py[cod]
-*.pyo
-*.pyd
-
-# C extensions
-*.so
-
 # Distribution / packaging
 .Python
 env/
@@ -19,19 +10,6 @@ dist/
 build/
 .venv
 
-# Pytest
-.cache
-*.cover
-*.log
-.coverage
-nosetests.xml
-coverage.xml
-*.hypothesis/
-*.pytest_cache/
-
-# Jupyter Notebook
-.ipynb_checkpoints
-
 # IDEs and Editors
 .vscode/
 .idea/
@@ -43,9 +21,3 @@ coverage.xml
 # OS generated files
 .DS_Store
 Thumbs.db
-
-/train/models/
-/train/artifact/
-/feature_engineering/feature_repo/data/input/raw_transaction_datasource.csv
-/feature_engineering/feature_repo/data/output/
-/feature_engineering/fetched_features/training_data.csv
