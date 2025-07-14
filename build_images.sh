@@ -13,6 +13,11 @@ print_bold() {
 # Default platform is linux/amd64,linux/arm64 if not specified
 PLATFORM="linux/amd64,linux/arm64"
 
+# Shift past the TAG argument if it was provided
+if [[ $# -gt 0 ]]; then
+  shift
+fi
+
 # Parse named parameters
 while [[ $# -gt 0 ]]; do
   case $1 in
@@ -22,7 +27,7 @@ while [[ $# -gt 0 ]]; do
       ;;
     *)
       echo "Unknown parameter: $1"
-      echo "Usage: $0 [--platform PLATFORM]"
+      echo "Usage: $0 [TAG] [--platform PLATFORM]"
       exit 1
       ;;
   esac
