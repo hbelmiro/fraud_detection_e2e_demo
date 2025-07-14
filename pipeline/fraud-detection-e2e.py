@@ -72,7 +72,7 @@ def prepare_data(job_id: str, data_preparation_image: str) -> bool:
     job_name = spark_app["metadata"]["name"]
     namespace = spark_app["metadata"]["namespace"]
 
-    timeout_minutes = 5
+    timeout_minutes = 10
     start_time = datetime.now()
     timeout_time = start_time + timedelta(minutes=timeout_minutes)
 

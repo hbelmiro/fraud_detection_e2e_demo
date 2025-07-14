@@ -85,7 +85,7 @@ deploymentSpec:
         - sh
         - -c
         - python /app/feast_feature_engineering.py --feature-repo-path=/app/feature_repo
-        image: quay.io/hbelmiro/fraud-detection-e2e-demo-feature-engineering:latest
+        image: quay.io/hbelmiro/fraud-detection-e2e-demo-feature-engineering:1.0.0
     exec-prepare-data:
       container:
         args:
@@ -135,7 +135,7 @@ deploymentSpec:
           \        namespace=spark_app[\"metadata\"][\"namespace\"],\n        plural=\"\
           sparkapplications\",\n        body=spark_app\n    )\n\n    job_name = spark_app[\"\
           metadata\"][\"name\"]\n    namespace = spark_app[\"metadata\"][\"namespace\"\
-          ]\n\n    timeout_minutes = 5\n    start_time = datetime.now()\n    timeout_time\
+          ]\n\n    timeout_minutes = 10\n    start_time = datetime.now()\n    timeout_time\
           \ = start_time + timedelta(minutes=timeout_minutes)\n\n    while True:\n\
           \        if datetime.now() > timeout_time:\n            logger.error(f\"\
           Timeout reached after {timeout_minutes} minutes waiting for Spark job completion\"\
@@ -150,7 +150,7 @@ deploymentSpec:
           \ application_state in [\"FAILED\", \"SUBMISSION_FAILED\", \"INVALIDATING\"\
           ]:\n            logger.error(f\"Spark job failed with state: {application_state}\"\
           )\n            return False\n\n        time.sleep(10)\n\n"
-        image: quay.io/hbelmiro/fraud-detection-e2e-demo-pipeline:latest
+        image: quay.io/hbelmiro/fraud-detection-e2e-demo-pipeline:1.0.0
     exec-register-model:
       container:
         args:
@@ -193,7 +193,7 @@ deploymentSpec:
           \            \"str_key\": \"str_value\",\n        }\n    )\n\n    outputs\
           \ = NamedTuple('outputs', model_name=str, model_version=str)\n    return\
           \ outputs(model_name, model_version)\n\n"
-        image: quay.io/hbelmiro/fraud-detection-e2e-demo-pipeline:latest
+        image: quay.io/hbelmiro/fraud-detection-e2e-demo-pipeline:1.0.0
     exec-retrieve-features:
       container:
         args:
@@ -272,7 +272,7 @@ deploymentSpec:
           )\n\n    local_dest = \"/app/feature_repo\"\n\n    download_artifacts(remote_feature_repo_dir,\
           \ local_dest)\n\n    fetch_historical_features_entity_df().to_csv(output_df.path,\
           \ index=False)\n\n"
-        image: quay.io/hbelmiro/fraud-detection-e2e-demo-pipeline:latest
+        image: quay.io/hbelmiro/fraud-detection-e2e-demo-pipeline:1.0.0
     exec-serve:
       container:
         args:
@@ -324,7 +324,7 @@ deploymentSpec:
           , model_name, \"--model-version\", model_version_name]\n               \
           \     )\n                ]\n            )\n        ),\n    )\n    ks_client\
           \ = kserve.KServeClient()\n    ks_client.create(inference_service)\n\n"
-        image: quay.io/hbelmiro/fraud-detection-e2e-demo-pipeline:latest
+        image: quay.io/hbelmiro/fraud-detection-e2e-demo-pipeline:1.0.0
     exec-train-model:
       container:
         args:
@@ -335,7 +335,7 @@ deploymentSpec:
         command:
         - python
         - /app/train.py
-        image: quay.io/hbelmiro/fraud-detection-e2e-demo-train:latest
+        image: quay.io/hbelmiro/fraud-detection-e2e-demo-train:1.0.0
 pipelineInfo:
   name: fraud-detection-e2e-pipeline
 root:
@@ -363,7 +363,7 @@ root:
           parameters:
             data_preparation_image:
               runtimeValue:
-                constant: quay.io/hbelmiro/fraud-detection-e2e-demo-data-preparation:latest
+                constant: quay.io/hbelmiro/fraud-detection-e2e-demo-data-preparation:1.0.0
             job_id:
               runtimeValue:
                 constant: '{{$.pipeline_job_uuid}}'
@@ -418,7 +418,7 @@ root:
                 producerTask: register-model
             rest_predictor_image:
               runtimeValue:
-                constant: quay.io/hbelmiro/fraud-detection-e2e-demo-rest-predictor:latest
+                constant: quay.io/hbelmiro/fraud-detection-e2e-demo-rest-predictor:1.0.0
         taskInfo:
           name: serve
       train-model:
