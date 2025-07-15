@@ -1,5 +1,5 @@
 import os
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 import feast.types
 from feast import (
@@ -154,3 +154,8 @@ move_parquet_files_from_temp()
 
 fs = FeatureStore(repo_path=".")
 fs.apply([transactions_fs])
+
+end_date = datetime.utcnow().isoformat()
+start_date = (datetime.utcnow() - timedelta(days=365)).isoformat()
+
+fs.materialize(start_date, end_date)
