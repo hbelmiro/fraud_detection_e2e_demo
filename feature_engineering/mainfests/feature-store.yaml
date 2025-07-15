@@ -11,4 +11,12 @@ spec:
       ref: openshift-feast-operator
       featureRepoPath: feature_engineering/feature_repo
   services:
+    offlineStore:
+      persistence:
+        store:  # Use DB persistence for Spark
+          type: spark
+          secretRef:
+            name: spark-config
+    onlineStore:
+      server: {}
     ui: {}

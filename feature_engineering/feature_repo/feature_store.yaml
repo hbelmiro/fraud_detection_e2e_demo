@@ -3,15 +3,6 @@ registry: data/output/registry.db
 provider: local
 offline_store:
     type: spark
-    spark_conf:
-        spark.master: "local[*]"
-        spark.ui.enabled: "false"
-        spark.eventLog.enabled: "false"
-        spark.sql.catalogImplementation: "hive"
-        spark.sql.parser.quotedRegexColumnNames: "true"
-        spark.sql.session.timeZone: "UTC"
-        spark.sql.execution.arrow.fallback.enabled: "true"
-        spark.sql.execution.arrow.pyspark.enabled: "true"
 online_store:
     type: sqlite
     path: /app/feature_repo/data/output/online_store.db
