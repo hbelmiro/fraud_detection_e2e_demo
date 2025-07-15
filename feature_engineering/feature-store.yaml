@@ -1,0 +1,14 @@
+apiVersion: feast.dev/v1alpha1
+kind: FeatureStore
+metadata:
+  name: fraud-detection
+  namespace: fraud-detection
+spec:
+  feastProject: fraud_detection_e2e_demo
+  feastProjectDir:
+    git:
+      url: https://github.com/hbelmiro/fraud_detection_e2e_demo
+      ref: openshift-feast-operator
+      featureRepoPath: feature_engineering/feature_repo
+  services:
+    ui: {}
