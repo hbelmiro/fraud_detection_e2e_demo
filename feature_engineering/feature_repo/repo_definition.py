@@ -7,7 +7,7 @@ from feast import (
     FeatureView,
     Field,
     Project,
-    ValueType
+    ValueType,
 )
 from feast.feature_logging import LoggingConfig
 from feast.infra.offline_stores.contrib.spark_offline_store.spark_source import SparkSource
@@ -16,7 +16,6 @@ from feast.infra.offline_stores.file_source import FileLoggingDestination
 LOCAL_DATA_DIR = "data/"
 LOCAL_INPUT_DIR = LOCAL_DATA_DIR + "input/"
 LOCAL_OUTPUT_DIR = LOCAL_DATA_DIR + "output/"
-
 
 project = Project(name="fraud_detection_e2e_demo")
 transaction = Entity(name="transaction", join_keys=["user_id"], value_type=ValueType.STRING)
