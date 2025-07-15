@@ -6,5 +6,7 @@ readme = "README.md"
 requires-python = "~=3.11"
 dependencies = [
     "feast[spark]",
-    "minio"
+    "minio",
+    "protobuf==5.29.3",
+    "grpcio"
 ]

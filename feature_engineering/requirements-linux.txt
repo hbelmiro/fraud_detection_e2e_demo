@@ -45,6 +45,8 @@ fsspec==2025.5.1
     # via dask
 greenlet==3.2.3
     # via sqlalchemy
+grpcio==1.73.1
+    # via feature-engineering (pyproject.toml)
 gunicorn==23.0.0
     # via
     #   feast
@@ -97,8 +99,10 @@ pathspec==0.12.1
     # via mypy
 prometheus-client==0.22.1
     # via feast
-protobuf==6.31.1
-    # via feast
+protobuf==5.29.3
+    # via
+    #   feature-engineering (pyproject.toml)
+    #   feast
 psutil==7.0.0
     # via feast
 py4j==0.10.9.7
