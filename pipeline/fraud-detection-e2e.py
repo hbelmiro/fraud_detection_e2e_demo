@@ -4,7 +4,7 @@ from typing import NamedTuple
 from kfp import dsl
 from kfp.dsl import Input, Dataset, Output, Model
 
-TAG = "feast-operator-1752594458"
+TAG = "feast-operator-1752603783"
 
 PIPELINE_IMAGE = os.getenv("PIPELINE_IMAGE", "quay.io/hbelmiro/fraud-detection-e2e-demo-pipeline-rhoai:" + TAG)
 FEATURE_ENGINEERING_IMAGE = os.getenv("FEATURE_ENGINEERING_IMAGE",
@@ -418,11 +418,30 @@ def serve(model_name: str, model_version_name: str, job_id: str, rest_predictor_
 @dsl.pipeline
 def fraud_detection_e2e_pipeline():
     import kfp
+    from kfp import kubernetes
 
     prepare_data_task = prepare_data(job_id=kfp.dsl.PIPELINE_JOB_ID_PLACEHOLDER,
                                      data_preparation_image=DATA_PREPARATION_IMAGE)
 
     feature_engineering_task = feature_engineering(data_preparation_ok=prepare_data_task.output)
+
+    kubernetes.use_secret_as_volume(
+        feature_engineering_task,
+        secret_name="feast-fraud-detection-registry-tls",
+        mount_path="/tls/registry"
+    )
+
+    kubernetes.use_secret_as_volume(
+        feature_engineering_task,
+        secret_name="feast-fraud-detection-online-tls",
+        mount_path="/tls/online"
+    )
+
+    kubernetes.use_secret_as_volume(
+        feature_engineering_task,
+        secret_name="feast-fraud-detection-offline-tls",
+        mount_path="/tls/offline"
+    )
 
     retrieve_features_task = retrieve_features(features_ok=feature_engineering_task.output)
 

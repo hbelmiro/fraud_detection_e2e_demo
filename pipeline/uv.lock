@@ -905,6 +905,21 @@ dependencies = [
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/ff/23/f2cbf26c53585c45e02156ea68547f97c1880dfd63377b059d4c0305215c/kfp-2.11.0.tar.gz", hash = "sha256:7195019246f800fb842bb071c8d3a106ca3d2e812540f90a6b23c3ed19207ae5", size = 345389 }
 
+[package.optional-dependencies]
+kubernetes = [
+    { name = "kfp-kubernetes" },
+]
+
+[[package]]
+name = "kfp-kubernetes"
+version = "1.5.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "kfp" },
+    { name = "protobuf" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/c8/b8/d41ed305110e4348b6c0828c9e8065aafe215db9ac4165f6b02da02a276e/kfp-kubernetes-1.5.0.tar.gz", hash = "sha256:84c2080f25934d21484f7a48eadbfd1f01f213fde0feb77f65346dbc544c855f", size = 16441 }
+
 [[package]]
 name = "kfp-pipeline-spec"
 version = "0.6.0"
@@ -1403,7 +1418,7 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "feast", extra = ["spark"] },
-    { name = "kfp" },
+    { name = "kfp", extra = ["kubernetes"] },
     { name = "kserve" },
     { name = "kubernetes" },
     { name = "minio" },
@@ -1415,6 +1430,7 @@ dependencies = [
 requires-dist = [
     { name = "feast", extras = ["spark"] },
     { name = "kfp", specifier = "==2.11.0" },
+    { name = "kfp", extras = ["kubernetes"] },
     { name = "kserve", specifier = "==0.15.0" },
     { name = "kubernetes" },
     { name = "minio" },
