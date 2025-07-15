@@ -85,7 +85,7 @@ deploymentSpec:
         - sh
         - -c
         - python /app/feast_feature_engineering.py --feature-repo-path=/app/feature_repo
-        image: quay.io/hbelmiro/fraud-detection-e2e-demo-feature-engineering-rhoai:latest
+        image: quay.io/hbelmiro/fraud-detection-e2e-demo-feature-engineering-rhoai:feast-operator-1752594458
     exec-prepare-data:
       container:
         args:
@@ -150,7 +150,7 @@ deploymentSpec:
           \ application_state in [\"FAILED\", \"SUBMISSION_FAILED\", \"INVALIDATING\"\
           ]:\n            logger.error(f\"Spark job failed with state: {application_state}\"\
           )\n            return False\n\n        time.sleep(10)\n\n"
-        image: quay.io/hbelmiro/fraud-detection-e2e-demo-pipeline-rhoai:latest
+        image: quay.io/hbelmiro/fraud-detection-e2e-demo-pipeline-rhoai:feast-operator-1752594458
     exec-register-model:
       container:
         args:
@@ -205,7 +205,7 @@ deploymentSpec:
           : False,\n            \"float_key\": 3.14,\n            \"str_key\": \"\
           str_value\",\n        }\n    )\n\n    outputs = NamedTuple('outputs', model_name=str,\
           \ model_version=str)\n    return outputs(model_name, model_version)\n\n"
-        image: quay.io/hbelmiro/fraud-detection-e2e-demo-pipeline-rhoai:latest
+        image: quay.io/hbelmiro/fraud-detection-e2e-demo-pipeline-rhoai:feast-operator-1752594458
     exec-retrieve-features:
       container:
         args:
@@ -284,7 +284,7 @@ deploymentSpec:
           )\n\n    local_dest = \"/app/feature_repo\"\n\n    download_artifacts(remote_feature_repo_dir,\
           \ local_dest)\n\n    fetch_historical_features_entity_df().to_csv(output_df.path,\
           \ index=False)\n\n"
-        image: quay.io/hbelmiro/fraud-detection-e2e-demo-pipeline-rhoai:latest
+        image: quay.io/hbelmiro/fraud-detection-e2e-demo-pipeline-rhoai:feast-operator-1752594458
     exec-serve:
       container:
         args:
@@ -376,7 +376,7 @@ deploymentSpec:
           \            )\n                        ]\n                    )\n     \
           \           ]\n            )\n        ),\n    )\n    ks_client = kserve.KServeClient()\n\
           \    ks_client.create(inference_service)\n\n"
-        image: quay.io/hbelmiro/fraud-detection-e2e-demo-pipeline-rhoai:latest
+        image: quay.io/hbelmiro/fraud-detection-e2e-demo-pipeline-rhoai:feast-operator-1752594458
     exec-train-model:
       container:
         args:
@@ -387,7 +387,7 @@ deploymentSpec:
         command:
         - python
         - /app/train.py
-        image: quay.io/hbelmiro/fraud-detection-e2e-demo-train-rhoai:latest
+        image: quay.io/hbelmiro/fraud-detection-e2e-demo-train-rhoai:feast-operator-1752594458
 pipelineInfo:
   name: fraud-detection-e2e-pipeline
 root:
@@ -415,7 +415,7 @@ root:
           parameters:
             data_preparation_image:
               runtimeValue:
-                constant: quay.io/hbelmiro/fraud-detection-e2e-demo-data-preparation-rhoai:latest
+                constant: quay.io/hbelmiro/fraud-detection-e2e-demo-data-preparation-rhoai:feast-operator-1752594458
             job_id:
               runtimeValue:
                 constant: '{{$.pipeline_job_uuid}}'
@@ -470,7 +470,7 @@ root:
                 producerTask: register-model
             rest_predictor_image:
               runtimeValue:
-                constant: quay.io/hbelmiro/fraud-detection-e2e-demo-rest-predictor-rhoai:latest
+                constant: quay.io/hbelmiro/fraud-detection-e2e-demo-rest-predictor-rhoai:feast-operator-1752594458
         taskInfo:
           name: serve
       train-model:

@@ -4,7 +4,7 @@ from typing import NamedTuple
 from kfp import dsl
 from kfp.dsl import Input, Dataset, Output, Model
 
-TAG = "latest"
+TAG = "feast-operator-1752594458"
 
 PIPELINE_IMAGE = os.getenv("PIPELINE_IMAGE", "quay.io/hbelmiro/fraud-detection-e2e-demo-pipeline-rhoai:" + TAG)
 FEATURE_ENGINEERING_IMAGE = os.getenv("FEATURE_ENGINEERING_IMAGE",
