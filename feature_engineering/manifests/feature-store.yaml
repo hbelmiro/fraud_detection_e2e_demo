@@ -9,14 +9,20 @@ spec:
     git:
       url: https://github.com/hbelmiro/fraud_detection_e2e_demo
       ref: openshift-feast-operator
-      featureRepoPath: feature_engineering/feature_repo
+      featureRepoPath: feature_engineering/server
   services:
+    registry:
+      local:
+        server:
+          image: quay.io/hbelmiro/fraud-detection-e2e-demo-feast-registry-rhoai:latest
     offlineStore:
+      server:
+        image: quay.io/hbelmiro/fraud-detection-e2e-demo-feast-registry-rhoai:latest
       persistence:
         store:  # Use DB persistence for Spark
           type: spark
           secretRef:
             name: spark-config
     onlineStore:
-      server: {}
-    ui: {}
+      server:
+        image: quay.io/hbelmiro/fraud-detection-e2e-demo-feast-registry-rhoai:latest

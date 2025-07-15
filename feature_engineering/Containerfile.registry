@@ -1,0 +1,6 @@
+FROM registry.redhat.io/rhoai/odh-feature-server-rhel9@sha256:2b4136569e10ad7d47c82bedf55c1705a833dc67c8f833656996bfe1fddbef3e
+
+COPY feast-spark-image/requirements.txt .
+
+RUN pip install -r requirements.txt \
+    && rm requirements.txt

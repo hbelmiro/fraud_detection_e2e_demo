@@ -1,11 +1,19 @@
 project: fraud_detection_e2e_demo
-registry: data/output/registry.db
 provider: local
 offline_store:
-    type: spark
+    host: feast-fraud-detection-offline.fraud-detection.svc.cluster.local
+    type: remote
+    port: 443
+    scheme: https
+    cert: /tls/offline/tls.crt
 online_store:
-    type: sqlite
-    path: /app/feature_repo/data/output/online_store.db
-entity_key_serialization_version: 3
+    path: https://feast-fraud-detection-online.fraud-detection.svc.cluster.local:443
+    type: remote
+    cert: /tls/online/tls.crt
+registry:
+    path: feast-fraud-detection-registry.fraud-detection.svc.cluster.local:443
+    registry_type: remote
+    cert: /tls/registry/tls.crt
 auth:
     type: no_auth
+entity_key_serialization_version: 3

@@ -1,0 +1,11 @@
+project: fraud_detection_e2e_demo
+registry: data/output/registry.db
+provider: local
+offline_store:
+    type: spark
+online_store:
+    type: sqlite
+    path: /app/feature_repo/data/output/online_store.db
+entity_key_serialization_version: 3
+auth:
+    type: no_auth
