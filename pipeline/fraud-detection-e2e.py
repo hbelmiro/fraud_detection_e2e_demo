@@ -247,6 +247,11 @@ def register_model(model: Input[Model]) -> NamedTuple('outputs', model_name=str,
         model_format_name="onnx",
         model_format_version="1",
         storage_key="mlpipeline-minio-artifact",
+        model_source_class="pipelinerun",
+        model_source_group="fraud-detection",
+        model_source_id="{{workflow.uid}}",
+        model_source_kind="kfp",
+        model_source_name="fraud-detection-e2e-pipeline",
         metadata={
             # can be one of the following types
             "int_key": 1,

@@ -187,12 +187,15 @@ deploymentSpec:
           \n\n    registry.register_model(\n        name=model_name,\n        uri=model.uri,\n\
           \        version=model_version,\n        description=\"lorem ipsum\",\n\
           \        model_format_name=\"onnx\",\n        model_format_version=\"1\"\
-          ,\n        storage_key=\"mlpipeline-minio-artifact\",\n        metadata={\n\
-          \            # can be one of the following types\n            \"int_key\"\
-          : 1,\n            \"bool_key\": False,\n            \"float_key\": 3.14,\n\
-          \            \"str_key\": \"str_value\",\n        }\n    )\n\n    outputs\
-          \ = NamedTuple('outputs', model_name=str, model_version=str)\n    return\
-          \ outputs(model_name, model_version)\n\n"
+          ,\n        storage_key=\"mlpipeline-minio-artifact\",\n        model_source_class=\"\
+          pipelinerun\",\n        model_source_group=\"fraud-detection\",\n      \
+          \  model_source_id=\"{{workflow.uid}}\",\n        model_source_kind=\"kfp\"\
+          ,\n        model_source_name=\"fraud-detection-e2e-pipeline\",\n       \
+          \ metadata={\n            # can be one of the following types\n        \
+          \    \"int_key\": 1,\n            \"bool_key\": False,\n            \"float_key\"\
+          : 3.14,\n            \"str_key\": \"str_value\",\n        }\n    )\n\n \
+          \   outputs = NamedTuple('outputs', model_name=str, model_version=str)\n\
+          \    return outputs(model_name, model_version)\n\n"
         image: quay.io/hbelmiro/fraud-detection-e2e-demo-pipeline:1.0.0
     exec-retrieve-features:
       container:
