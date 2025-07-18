@@ -1,0 +1,22 @@
+name: Check uv.lock sync - pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    paths:
+      - '.github/workflows/uv-lock-check-synthetic-data-generation.yaml'
+      - 'synthetic_data_generation/pyproject.toml'
+      - 'synthetic_data_generation/uv.lock'
+      - 'synthetic_data_generation/requirements-linux.txt'
+jobs:
+  uv-lock-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check uv.lock is in sync with pyproject.toml
+        uses: hbelmiro/uv-lock-check@v0.2.0
+        with:
+          pyproject-path: 'synthetic_data_generation/pyproject.toml'
