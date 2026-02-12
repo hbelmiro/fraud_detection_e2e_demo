@@ -76,6 +76,8 @@ def prepare_data(job_id: str, data_preparation_image: str) -> bool:
     start_time = datetime.now()
     timeout_time = start_time + timedelta(minutes=timeout_minutes)
 
+    print("test")
+
     while True:
         if datetime.now() > timeout_time:
             logger.error(f"Timeout reached after {timeout_minutes} minutes waiting for Spark job completion")
